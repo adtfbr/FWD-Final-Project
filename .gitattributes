@@ -1,0 +1,71 @@
+# =====================================================
+# ⚙️ .gitattributes for Laravel (kelurahan-api) + React/Vite (kelurahan-fe)
+# =====================================================
+
+# --- Normalize line endings ---
+* text=auto
+
+# --- Treat environment and config files as binary to prevent merge conflicts ---
+*.env binary
+*.env.* binary
+*.key binary
+*.pem binary
+*.crt binary
+*.cer binary
+*.p12 binary
+
+# --- Ignore local OS metadata ---
+.DS_Store binary
+Thumbs.db binary
+
+# --- Laravel backend specific (kelurahan-api) ---
+kelurahan-api/storage/** binary
+kelurahan-api/bootstrap/cache/** binary
+kelurahan-api/public/storage/** binary
+kelurahan-api/public/hot binary
+kelurahan-api/public/mix-manifest.json text eol=lf
+
+# --- Frontend specific (kelurahan-fe) ---
+kelurahan-fe/dist/** binary
+kelurahan-fe/build/** binary
+
+# --- Logs and caches ---
+*.log binary
+*.cache binary
+
+# --- Composer & Node lockfiles (keep consistent line endings) ---
+kelurahan-api/composer.lock text eol=lf
+kelurahan-fe/package-lock.json text eol=lf
+kelurahan-fe/yarn.lock text eol=lf
+kelurahan-fe/pnpm-lock.yaml text eol=lf
+
+# --- Force Unix line endings for code files ---
+*.php text eol=lf
+*.js  text eol=lf
+*.jsx text eol=lf
+*.ts  text eol=lf
+*.tsx text eol=lf
+*.vue text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.json text eol=lf
+*.md  text eol=lf
+*.blade.php text eol=lf
+
+# --- Treat images and compiled assets as binary ---
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svg binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+
+# --- GitHub Linguist overrides (for better language stats) ---
+kelurahan-api/** linguist-language=PHP
+kelurahan-fe/** linguist-language=JavaScript
