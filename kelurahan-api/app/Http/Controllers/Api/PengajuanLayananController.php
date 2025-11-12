@@ -7,18 +7,15 @@ use Illuminate\Http\Request;
 use App\Models\PengajuanLayanan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Database\Eloquent\ModelNotFoundException; // <-- Tambahkan ini
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PengajuanLayananController extends Controller
 {
     /**
-     * Store a newly created resource in storage.
-     * (Digunakan oleh WARGA)
-     * (STATUS: SUDAH BENAR)
+     * Store (Digunakan oleh WARGA)
      */
     public function store(Request $request)
     {
-        // 1. Validasi input
         $validator = Validator::make($request->all(), [
             'id_jenis_layanan' => 'required|integer|exists:jenis_layanans,id_jenis_layanan',
             'keterangan' => 'nullable|string',
@@ -32,10 +29,8 @@ class PengajuanLayananController extends Controller
             ], 422);
         }
 
-        // 2. Dapatkan id_user dari user yang sedang login
         $idUser = Auth::id();
 
-        // 3. Buat pengajuan baru
         $pengajuan = PengajuanLayanan::create([
             'id_user' => $idUser,
             'id_jenis_layanan' => $request->id_jenis_layanan,
@@ -52,9 +47,7 @@ class PengajuanLayananController extends Controller
     }
 
     /**
-     * Menampilkan riwayat pengajuan milik user yang sedang login.
-     * (Digunakan oleh WARGA)
-     * (STATUS: SUDAH BENAR)
+     * Riwayat (Digunakan oleh WARGA)
      */
     public function riwayatSaya()
     {
@@ -72,18 +65,11 @@ class PengajuanLayananController extends Controller
         ], 200);
     }
 
-
-    // --- FUNGSI UNTUK PETUGAS ---
-
     /**
-     * Display a listing of the resource.
-     * (Digunakan oleh PETUGAS)
+     * Index (Digunakan oleh PETUGAS)
      */
     public function index()
     {
-        // --- DIPERBAIKI ---
-        // Relasi Anda adalah ke 'user', lalu 'user' ke 'penduduk'.
-        // Jadi kita panggil relasinya sebagai 'user.penduduk'.
         $pengajuan = PengajuanLayanan::with('user.penduduk', 'jenisLayanan')
             ->orderBy('tanggal_pengajuan', 'desc')
             ->get();
@@ -96,14 +82,11 @@ class PengajuanLayananController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     * (Digunakan oleh PETUGAS)
+     * Show (Digunakan oleh PETUGAS)
      */
     public function show(string $id)
     {
         try {
-            // --- DIPERBAIKI ---
-            // Sama seperti index, kita panggil 'user.penduduk'
             $pengajuan = PengajuanLayanan::with('user.penduduk', 'jenisLayanan', 'petugas')
                 ->findOrFail($id);
 
@@ -112,7 +95,7 @@ class PengajuanLayananController extends Controller
                 'message' => 'Detail pengajuan layanan berhasil diambil.',
                 'data' => $pengajuan
             ], 200);
-        } catch (ModelNotFoundException $e) { // <-- Dirapikan
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data pengajuan tidak ditemukan.'
@@ -121,14 +104,10 @@ class PengajuanLayananController extends Controller
     }
 
     /**
-     * Update the status of the specified resource in storage.
-     * (Digunakan oleh PETUGAS untuk ubah status)
+     * Update Status (Digunakan oleh PETUGAS)
      */
     public function updateStatus(Request $request, string $id)
     {
-        // 1. Validasi status yang masuk
-        // --- DIPERBAIKI ---
-        // Menghapus validasi 'catatan_petugas' karena tidak ada di migrasi Anda
         $validator = Validator::make($request->all(), [
             'status' => 'required|string|in:Diproses,Selesai,Ditolak',
         ]);
@@ -141,32 +120,19 @@ class PengajuanLayananController extends Controller
             ], 422);
         }
 
-        // 2. Cari pengajuan
         try {
             $pengajuan = PengajuanLayanan::findOrFail($id);
-        } catch (ModelNotFoundException $e) { // <-- Dirapikan
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Data pengajuan tidak ditemukan.'
             ], 404);
         }
 
-        // 3. Dapatkan id_petugas dari user yang sedang login
         $idPetugas = Auth::user()->id_petugas;
 
-        // 4. Update data
         $pengajuan->status = $request->status;
-        $pengajuan->id_petugas = $idPetugas; // Catat siapa petugas yg memproses
-
-        // --- DIPERBAIKI ---
-        // Menghapus 'catatan_petugas' dan 'tanggal_selesai'
-        // karena tidak ada di file migrasi yang Anda kirimkan.
-
-        // $pengajuan->catatan_petugas = $request->catatan_petugas; // <-- DIHAPUS
-        // if (in_array($request->status, ['Selesai', 'Ditolak'])) {
-        //     $pengajuan->tanggal_selesai = now(); // <-- DIHAPUS
-        // }
-
+        $pengajuan->id_petugas = $idPetugas;
         $pengajuan->save();
 
         return response()->json([

@@ -9,7 +9,7 @@ class Petugas extends Model
 {
     use HasFactory;
 
-    protected $table = 'petugas'; // Nama tabelnya 'petugas', bukan 'petugass'
+    protected $table = 'petugas';
     protected $primaryKey = 'id_petugas';
     protected $fillable = ['nama_petugas', 'jabatan', 'no_hp'];
 
