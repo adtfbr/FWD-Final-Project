@@ -11,17 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id('id_user');
-            $table->foreignId('id_penduduk')->nullable()->constrained('penduduks', 'id_penduduk');
-            $table->foreignId('id_petugas')->nullable()->constrained('petugas', 'id_petugas');
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('password');
-            $table->enum('role', ['warga', 'petugas']);
-            $table->rememberToken();
-            $table->timestamps();
-        });
         Schema::create('pengajuan_layanans', function (Blueprint $table) {
             $table->id('id_pengajuan');
             $table->foreignId('id_user')->constrained('users', 'id_user');
@@ -40,6 +29,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('pengajuan_layanans');
-        Schema::dropIfExists('users');
+        // HAPUS JUGA drop users DARI SINI
     }
 };

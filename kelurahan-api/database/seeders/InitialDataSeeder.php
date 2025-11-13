@@ -16,14 +16,14 @@ class InitialDataSeeder extends Seeder
     {
         // === BUAT DATA PETUGAS & AKUN LOGIN PETUGAS ===
         $petugas1 = Petugas::create([
-            'nama_petugas' => 'Andi Wijaya',
+            'nama_petugas' => 'Aditya Febriadi',
             'jabatan'      => 'Kepala Layanan',
         ]);
 
         User::create([
             'id_petugas' => $petugas1->id_petugas,
             'name'       => $petugas1->nama_petugas,
-            'email'      => 'andi.petugas@kelurahan.com',
+            'email'      => 'adit.petugas@kelurahan.com',
             'password'   => Hash::make('password'),
             'role'       => 'petugas',
         ]);
@@ -61,7 +61,7 @@ class InitialDataSeeder extends Seeder
         $penduduk1 = Penduduk::create([
             'id_kk'         => $kkContoh->id_kk,
             'nik'           => '3276009988776655',
-            'nama'          => 'Budi Santoso',
+            'nama'          => 'Aditya Febriadi',
             'tanggal_lahir' => '1990-05-15',
             'jenis_kelamin' => 'L',
             'alamat'        => 'Jl. Merdeka No. 10',
@@ -79,7 +79,7 @@ class InitialDataSeeder extends Seeder
         User::create([
             'id_penduduk' => $penduduk1->id_penduduk,
             'name'        => $penduduk1->nama,
-            'email'       => 'budi.warga@email.com',
+            'email'       => 'adit.warga@email.com',
             'password'    => Hash::make('password'),
             'role'        => 'warga',
         ]);
