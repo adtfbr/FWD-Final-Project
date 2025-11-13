@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->enum('role', ['warga', 'petugas']);
+            $table->enum('status', ['active', 'pending', 'rejected'])->default('pending');
             $table->rememberToken();
             $table->timestamps();
         });

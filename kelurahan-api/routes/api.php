@@ -7,8 +7,11 @@ use App\Http\Controllers\Api\JenisLayananController;
 use App\Http\Controllers\Api\PendudukController;
 use App\Http\Controllers\Api\KkController;
 use App\Http\Controllers\Api\PengajuanLayananController;
+use App\Http\Controllers\Api\RegistrationController;
 
+// Rute Publik
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -35,5 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/pengajuan-layanan', [PengajuanLayananController::class, 'index']);
         Route::get('/pengajuan-layanan/{id}', [PengajuanLayananController::class, 'show']);
         Route::put('/pengajuan-layanan/{id}/status', [PengajuanLayananController::class, 'updateStatus']);
+
+        // Manajemen Registrasi Warga
+        Route::get('/registrations', [RegistrationController::class, 'index']); // pending
+        Route::put('/registrations/{id}/approve', [RegistrationController::class, 'approve']); // Setujui
+        Route::delete('/registrations/{id}/reject', [RegistrationController::class, 'reject']); // Tolak
     });
 });

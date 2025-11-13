@@ -26,6 +26,7 @@ class InitialDataSeeder extends Seeder
             'email'      => 'adit.petugas@kelurahan.com',
             'password'   => Hash::make('password'),
             'role'       => 'petugas',
+            'status'     => 'active',
         ]);
 
         $petugas2 = Petugas::create([
@@ -39,6 +40,7 @@ class InitialDataSeeder extends Seeder
             'email'      => 'siti.petugas@kelurahan.com',
             'password'   => Hash::make('password'),
             'role'       => 'petugas',
+            'status'     => 'active',
         ]);
 
 
@@ -82,6 +84,7 @@ class InitialDataSeeder extends Seeder
             'email'       => 'adit.warga@email.com',
             'password'    => Hash::make('password'),
             'role'        => 'warga',
+            'status'      => 'active',
         ]);
     }
 }
