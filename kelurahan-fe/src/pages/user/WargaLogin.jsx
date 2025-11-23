@@ -22,7 +22,13 @@ const WargaLogin = () => {
       await loginWarga(email, password);
       navigate("/profil");
     } catch (err) {
-      setError(err.message);
+      // --- PERUBAHAN DISINI ---
+      if (err.code === "ERR_NETWORK" || err.code === "ERR_CONNECTION_REFUSED") {
+        setError("Gagal terhubung ke server. Pastikan backend sudah dijalankan.");
+      } else {
+        setError(err.message);
+      }
+      // ------------------------
     } finally {
       setLoading(false);
     }

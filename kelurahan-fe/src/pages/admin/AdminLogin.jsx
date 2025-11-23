@@ -22,7 +22,20 @@ const AdminLogin = () => {
       await loginPetugas(email, password);
       navigate('/admin/dashboard');
     } catch (err) {
-      setError(err.message || "Email atau password salah.");
+      // --- PERUBAHAN DISINI ---
+      // Cek apakah ini error koneksi (Network Error / Server Mati)
+      if (err.code === "ERR_NETWORK" || err.code === "ERR_CONNECTION_REFUSED") {
+        setError("Gagal terhubung ke server. Pastikan backend sudah dijalankan.");
+      } 
+      // Cek apakah error dari AuthContext yang kita lempar manual (misal 401/403)
+      else if (err.message) {
+        setError(err.message);
+      } 
+      // Fallback error lainnya
+      else {
+        setError("Terjadi kesalahan yang tidak diketahui.");
+      }
+      // ------------------------
     } finally {
       setLoading(false);
     }

@@ -1,13 +1,13 @@
 // Lokasi file: src/pages/admin/DataPenduduk.jsx
-// (PEROMBAKAN BESAR - Menyesuaikan form dengan validasi backend)
+// (REVISI FINAL: Dropdown KK Otomatis + Modal Rata Tengah)
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import api from "../../services/api";
 
-// --- STATE FORM AWAL (SESUAI VALIDASI BACKEND) ---
+// --- STATE FORM AWAL ---
 const initialFormState = {
-  id_kk: "",
+  id_kk: "", // Ini nanti diisi lewat Dropdown
   nik: "",
   nama: "",
   alamat: "",
@@ -20,58 +20,58 @@ const initialFormState = {
 export default function DataPenduduk() {
   // === STATES ===
   const [pendudukList, setPendudukList] = useState([]);
+  const [kkList, setKkList] = useState([]); // State untuk menyimpan opsi KK
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // === MODAL ===
+  // === MODAL KONTROL ===
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPendudukId, setCurrentPendudukId] = useState(null);
   const [formData, setFormData] = useState(initialFormState);
 
-  const modalRef = useRef(null);
-
-  // === FETCH DATA (READ) ===
-  const fetchDataPenduduk = async () => {
+  // === FETCH DATA UTAMA (PENDUDUK & KK) ===
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("/penduduk");
-      setPendudukList(response.data.data || []);
+      // Kita ambil data Penduduk DAN data KK sekaligus menggunakan Promise.all
+      const [pendudukRes, kkRes] = await Promise.all([
+        api.get("/penduduk"),
+        api.get("/kk")
+      ]);
+
+      setPendudukList(pendudukRes.data.data || []);
+      setKkList(kkRes.data.data || []); // Simpan data KK ke state
+
     } catch (err) {
-      setError("Gagal mengambil data dari server. " + err.message);
+      setError("Gagal mengambil data. " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // Jalankan saat pertama kali load
   useEffect(() => {
-    fetchDataPenduduk();
+    fetchData();
   }, []);
 
-  // === MODAL KONTROL (ANTI BUG) ===
-  useEffect(() => {
-    if (isModalOpen) modalRef.current?.showModal();
-    else modalRef.current?.close();
-  }, [isModalOpen]);
-
-  // === HANDLING FORM ===
+  // === HANDLERS ===
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const resetFormAndClose = () => {
+    setFormData(initialFormState);
+    setCurrentPendudukId(null);
+    setError(null);
     setIsModalOpen(false);
-    setTimeout(() => {
-      setFormData(initialFormState);
-      setCurrentPendudukId(null);
-      setError(null);
-    }, 200);
   };
 
   const handleOpenModal = (penduduk = null) => {
     if (penduduk) {
+      // MODE EDIT
       setFormData({
         id_kk: penduduk.id_kk || "",
         nik: penduduk.nik || "",
@@ -82,17 +82,16 @@ export default function DataPenduduk() {
         email: penduduk.email || "",
         telepon: penduduk.telepon || "",
       });
-
       setCurrentPendudukId(penduduk.id_penduduk || penduduk.id);
     } else {
+      // MODE TAMBAH
       setFormData(initialFormState);
       setCurrentPendudukId(null);
     }
-
     setIsModalOpen(true);
   };
 
-  // === SUBMIT (CREATE / UPDATE) ===
+  // === SUBMIT ===
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -104,7 +103,7 @@ export default function DataPenduduk() {
         await api.post("/penduduk", formData);
       }
 
-      fetchDataPenduduk();
+      fetchData(); // Refresh data setelah simpan
       resetFormAndClose();
     } catch (err) {
       if (err.response && err.response.data.errors) {
@@ -121,18 +120,16 @@ export default function DataPenduduk() {
   // === DELETE ===
   const handleDelete = async (id) => {
     setError(null);
-
     if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
       try {
         await api.delete(`/penduduk/${id}`);
-        fetchDataPenduduk();
+        fetchData();
       } catch (err) {
         setError("Gagal menghapus data. " + err.message);
       }
     }
   };
 
-  // === LOADING ===
   if (loading) {
     return (
       <div className="text-center p-8">
@@ -155,11 +152,10 @@ export default function DataPenduduk() {
         </button>
       </div>
 
+      {/* Error Global */}
       {error && !isModalOpen && (
         <div className="alert alert-error shadow-lg mb-4">
-          <div>
-            <span>{error}</span>
-          </div>
+          <div><span>{error}</span></div>
         </div>
       )}
 
@@ -171,7 +167,7 @@ export default function DataPenduduk() {
               <th className="p-3 text-center">No</th>
               <th className="p-3 text-left">Nama</th>
               <th className="p-3 text-left">NIK</th>
-              <th className="p-3 text-left">Alamat</th>
+              <th className="p-3 text-left">No. KK</th> {/* Diganti dari Alamat agar lebih relevan */}
               <th className="p-3 text-center">L/P</th>
               <th className="p-3 text-center">Aksi</th>
             </tr>
@@ -193,7 +189,10 @@ export default function DataPenduduk() {
                   <td className="p-3 text-center">{index + 1}</td>
                   <td className="p-3 text-left">{penduduk.nama}</td>
                   <td className="p-3 text-left">{penduduk.nik}</td>
-                  <td className="p-3 text-left">{penduduk.alamat}</td>
+                  {/* Tampilkan Nomor KK dari relasi, bukan ID */}
+                  <td className="p-3 text-left">
+                    {penduduk.kk ? penduduk.kk.no_kk : '-'}
+                  </td>
                   <td className="p-3 text-center">
                     {penduduk.jenis_kelamin}
                   </td>
@@ -222,113 +221,113 @@ export default function DataPenduduk() {
         </table>
       </div>
 
-      {/* ==================== MODAL ==================== */}
-      <dialog
-        ref={modalRef}
-        id="crud_modal"
-        className="modal"
-        onClose={resetFormAndClose}
-      >
-        <div className="modal-box w-11/12 max-w-2xl bg-white p-6 rounded-xl shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-center">
-              {currentPendudukId
-                ? "Edit Data Penduduk"
-                : "Tambah Data Penduduk Baru"}
-            </h2>
-
-            <button
-              type="button"
-              className="btn btn-sm btn-circle btn-ghost"
+      {/* ==================== MODAL MANUAL (PASTI TENGAH) ==================== */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          
+          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-fade-in-up">
+            
+            <button 
+              type="button" 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold"
               onClick={resetFormAndClose}
             >
               ✕
             </button>
-          </div>
 
-          {error && isModalOpen && (
-            <div className="alert alert-warning text-sm p-3 mb-4">
-              <span>{error}</span>
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold text-gray-800">
+                {currentPendudukId ? "Edit Data Penduduk" : "Tambah Data Penduduk Baru"}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">Pastikan data sesuai KTP/KK.</p>
             </div>
-          )}
 
-          {/* FORM */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Nama Lengkap"
-              name="nama"
-              value={formData.nama}
-              handle={handleInputChange}
-              required
-            />
+            {error && (
+              <div className="alert alert-error mb-4 text-sm p-3 rounded-lg">
+                <span>{error}</span>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="NIK"
-                name="nik"
-                value={formData.nik}
-                handle={handleInputChange}
-                type="number"
-                required
-              />
-              <Input
-                label="ID KK"
-                name="id_kk"
+            {/* FORM */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              
+              {/* --- REVISI BAGIAN INI: DROPDOWN KK --- */}
+              <SelectKK
+                kkList={kkList} // Kirim data KK ke komponen Select
                 value={formData.id_kk}
                 handle={handleInputChange}
-                type="number"
                 required
               />
-            </div>
+              {/* ------------------------------------ */}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
-                label="Tanggal Lahir"
-                name="tanggal_lahir"
-                value={formData.tanggal_lahir}
+                label="Nama Lengkap"
+                name="nama"
+                value={formData.nama}
                 handle={handleInputChange}
-                type="date"
                 required
               />
 
-              <SelectGender
-                value={formData.jenis_kelamin}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="NIK (16 Digit)"
+                  name="nik"
+                  value={formData.nik}
+                  handle={handleInputChange}
+                  type="number"
+                  required
+                />
+                
+                <SelectGender
+                  value={formData.jenis_kelamin}
+                  handle={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input
+                  label="Tanggal Lahir"
+                  name="tanggal_lahir"
+                  value={formData.tanggal_lahir}
+                  handle={handleInputChange}
+                  type="date"
+                  required
+                />
+                <Input
+                  label="Telepon (Opsional)"
+                  name="telepon"
+                  value={formData.telepon}
+                  handle={handleInputChange}
+                  type="tel"
+                />
+              </div>
+
+              <TextArea
+                label="Alamat Domisili"
+                name="alamat"
+                value={formData.alamat}
                 handle={handleInputChange}
                 required
               />
-            </div>
 
-            <TextArea
-              label="Alamat"
-              name="alamat"
-              value={formData.alamat}
-              handle={handleInputChange}
-              required
-            />
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-800 font-semibold mb-2">Akun Login (Opsional)</p>
+                <Input
+                  label="Email (Untuk login warga)"
+                  name="email"
+                  value={formData.email}
+                  handle={handleInputChange}
+                  type="email"
+                  placeholder="Kosongkan jika tidak perlu"
+                />
+              </div>
 
-            <hr className="my-2" />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Email (Opsional)"
-                name="email"
-                value={formData.email}
-                handle={handleInputChange}
-                type="email"
-              />
-              <Input
-                label="Telepon (Opsional)"
-                name="telepon"
-                value={formData.telepon}
-                handle={handleInputChange}
-                type="tel"
-              />
-            </div>
-
-            <FormButtons close={resetFormAndClose} />
-          </form>
+              <FormButtons close={resetFormAndClose} />
+            </form>
+          </div>
         </div>
-      </dialog>
+      )}
     </div>
   );
 }
@@ -337,17 +336,49 @@ export default function DataPenduduk() {
 /* ======================= KOMPONEN ============================ */
 /* ============================================================= */
 
-function Input({ label, name, value, handle, type = "text", required = false }) {
+// --- KOMPONEN BARU: SelectKK ---
+// Menampilkan No KK + Nama Kepala Keluarga agar mudah dipilih
+function SelectKK({ kkList, value, handle, required = false }) {
   return (
-    <div>
-      <label className="block font-medium mb-1">{label}</label>
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        Pilih Kartu Keluarga (KK) {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        name="id_kk"
+        value={value || ""}
+        onChange={handle}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+        required={required}
+      >
+        <option value="">-- Pilih Nomor KK --</option>
+        {kkList.length > 0 ? (
+          kkList.map((kk) => (
+            <option key={kk.id_kk} value={kk.id_kk}>
+              {kk.no_kk} - {kk.nama_kepala_keluarga}
+            </option>
+          ))
+        ) : (
+          <option disabled>Data KK Kosong (Input KK dulu)</option>
+        )}
+      </select>
+    </div>
+  );
+}
 
+function Input({ label, name, value, handle, type = "text", required = false, placeholder = "" }) {
+  return (
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
       <input
         type={type}
         name={name}
         value={value || ""}
         onChange={handle}
-        className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+        placeholder={placeholder}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
         required={required}
       />
     </div>
@@ -356,15 +387,16 @@ function Input({ label, name, value, handle, type = "text", required = false }) 
 
 function TextArea({ label, name, value, handle, required = false }) {
   return (
-    <div>
-      <label className="block font-medium mb-1">{label}</label>
-
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
       <textarea
         name={name}
         value={value || ""}
         onChange={handle}
-        rows={3}
-        className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+        rows={2}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
         required={required}
       />
     </div>
@@ -373,17 +405,18 @@ function TextArea({ label, name, value, handle, required = false }) {
 
 function SelectGender({ value, handle, required = false }) {
   return (
-    <div>
-      <label className="block font-medium mb-1">Jenis Kelamin</label>
-
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        Jenis Kelamin {required && <span className="text-red-500">*</span>}
+      </label>
       <select
         name="jenis_kelamin"
         value={value || ""}
         onChange={handle}
-        className="w-full p-2 border rounded-lg"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
         required={required}
       >
-        <option value="">Pilih Jenis Kelamin</option>
+        <option value="">-- Pilih --</option>
         <option value="L">Laki-laki</option>
         <option value="P">Perempuan</option>
       </select>
@@ -393,20 +426,20 @@ function SelectGender({ value, handle, required = false }) {
 
 function FormButtons({ close }) {
   return (
-    <div className="flex justify-between mt-6">
+    <div className="flex justify-end gap-3 mt-6">
       <button
         type="button"
         onClick={close}
-        className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+        className="px-5 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
       >
         Batal
       </button>
 
       <button
         type="submit"
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]"
       >
-        Simpan
+        Simpan Data
       </button>
     </div>
   );

@@ -1,15 +1,15 @@
 // Lokasi file: src/pages/admin/DataKK.jsx
-// (PEROMBAKAN BESAR - Menyesuaikan form dengan validasi backend)
+// (REVISI FINAL: Menggunakan Custom Overlay agar PASTI RATA TENGAH)
 
-import { useState, useEffect, useRef } from 'react';
-import { FaEdit, FaTrash, FaPlus, FaIdCard } from 'react-icons/fa';
+import { useState, useEffect } from 'react'; // Hapus useRef karena tidak dipakai lagi
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import api from '../../services/api'; 
 
-// --- STATE FORM AWAL (SESUAI VALIDASI BACKEND) ---
+// --- STATE FORM AWAL ---
 const initialFormState = {
   no_kk: '',
   nama_kepala_keluarga: '',
-  nik_kepala_keluarga: '', // NIK Kepala Keluarga
+  nik_kepala_keluarga: '', 
   alamat: '',
   rt: '',
   rw: '',
@@ -18,9 +18,9 @@ const initialFormState = {
   kabupaten: '',
   provinsi: '',
   kode_pos: '',
-  tanggal_terbit: '', // format YYYY-MM-DD
+  tanggal_terbit: '', 
   jumlah_anggota: '',
-  status_keluarga: '', // contoh: 'Kepala Keluarga', 'Anggota'
+  status_keluarga: '', 
 };
 
 export default function DataKK() {
@@ -34,14 +34,12 @@ export default function DataKK() {
   const [currentKkId, setCurrentKkId] = useState(null); 
   const [formData, setFormData] = useState(initialFormState);
 
-  const modalRef = useRef(null); // Ref untuk bug fokus
-
-  // === DATA FETCHING (READ) ===
+  // === DATA FETCHING ===
   const fetchDataKk = async () => {
      try {
       setLoading(true);
       setError(null);
-      const response = await api.get('/kk'); // API: GET /api/kk
+      const response = await api.get('/kk');
       setKkList(response.data.data || []); 
     } catch (err) {
       setError("Gagal mengambil data KK. " + err.message);
@@ -54,28 +52,17 @@ export default function DataKK() {
     fetchDataKk();
   }, []);
 
-  // === KONTROL MODAL (Anti-bug kehilangan fokus) ===
-  useEffect(() => {
-    if (isModalOpen) {
-      modalRef.current?.showModal();
-    } else {
-      modalRef.current?.close();
-    }
-  }, [isModalOpen]);
-
-  // === FORM & MODAL HANDLERS ===
+  // === HANDLERS ===
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
   const resetFormAndClose = () => {
-    setIsModalOpen(false);
-    setTimeout(() => { 
-      setFormData(initialFormState);
-      setCurrentKkId(null);
-      setError(null); 
-    }, 200);
+    setFormData(initialFormState);
+    setCurrentKkId(null);
+    setError(null); 
+    setIsModalOpen(false); // Tutup modal
   };
 
   const handleOpenModal = (kk = null) => {
@@ -103,30 +90,30 @@ export default function DataKK() {
       setFormData(initialFormState);
       setCurrentKkId(null);
     }
-    setIsModalOpen(true); 
+    setIsModalOpen(true); // Buka modal
   };
 
-  // === CRUD OPERATIONS (CREATE, UPDATE, DELETE) ===
+  // === CRUD OPERATIONS ===
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null); 
     
     try {
       if (currentKkId) {
-        await api.put(`/kk/${currentKkId}`, formData); // API: PUT /api/kk/{id}
+        await api.put(`/kk/${currentKkId}`, formData);
       } else {
-        await api.post('/kk', formData); // API: POST /api/kk
+        await api.post('/kk', formData);
       }
       
-      fetchDataKk(); // Ambil ulang data KK
-      resetFormAndClose(); // Tutup modal jika sukses
+      fetchDataKk();
+      resetFormAndClose(); 
       
     } catch (err) {
       if (err.response && err.response.data.errors) {
         const errors = err.response.data.errors;
         const firstErrorKey = Object.keys(errors)[0];
         const firstErrorMessage = errors[firstErrorKey][0];
-        setError(firstErrorMessage); // Tampilkan pesan error spesifik
+        setError(firstErrorMessage);
       } else {
         setError("Gagal menyimpan data. " + err.message);
       }
@@ -137,7 +124,7 @@ export default function DataKK() {
     setError(null); 
     if (window.confirm("Apakah Anda yakin ingin menghapus data KK ini?")) {
       try {
-        await api.delete(`/kk/${id}`); // API: DELETE /api/kk/{id}
+        await api.delete(`/kk/${id}`);
         fetchDataKk(); 
       } catch (err) {
         setError("Gagal menghapus data. Pastikan semua anggota keluarga sudah dihapus dari KK ini. " + err.message);
@@ -145,13 +132,12 @@ export default function DataKK() {
     }
   };
   
-  // === RENDER LOADING & ERROR ===
   if (loading) return <div className="text-center p-8"><span className="loading loading-spinner loading-lg"></span></div>;
 
   return (
     <div className="p-6">
 
-      {/* HEADER (Style Anda) */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-semibold">Manajemen Kartu Keluarga (KK)</h1>
         <button
@@ -162,13 +148,14 @@ export default function DataKK() {
         </button>
       </div>
 
+      {/* Error Global (bukan di dalam modal) */}
       {error && !isModalOpen && (
         <div className="alert alert-error shadow-lg mb-4">
           <div><span>{error}</span></div>
         </div>
       )}
 
-      {/* TABLE LIST (Style Anda - Diperbarui) */}
+      {/* TABLE LIST */}
       <div className="overflow-x-auto shadow-md rounded-lg">
         <table className="w-full border-collapse rounded-lg overflow-hidden">
           <thead className="bg-blue-600 text-white">
@@ -181,10 +168,7 @@ export default function DataKK() {
               <th className="p-3 text-left">RT/RW</th>
               <th className="p-3 text-left">Kel/Desa</th>
               <th className="p-3 text-left">Kecamatan</th>
-              <th className="p-3 text-left">Kabupaten</th>
-              <th className="p-3 text-left">Provinsi</th>
               <th className="p-3 text-left">Jumlah Anggota</th>
-              <th className="p-3 text-left">Tanggal Terbit</th>
               <th className="p-3 text-center">Aksi</th>
             </tr>
           </thead>
@@ -192,7 +176,7 @@ export default function DataKK() {
           <tbody>
             {kkList.length === 0 ? (
                 <tr>
-                  <td colSpan="13" className="text-center p-4 bg-white">
+                  <td colSpan="10" className="text-center p-4 bg-white">
                     Belum ada data KK. Silakan tambah data baru.
                   </td>
                 </tr>
@@ -207,10 +191,7 @@ export default function DataKK() {
                 <td className="p-3 text-left">{kk.rt}/{kk.rw}</td>
                 <td className="p-3 text-left">{kk.kelurahan}</td>
                 <td className="p-3 text-left">{kk.kecamatan}</td>
-                <td className="p-3 text-left">{kk.kabupaten}</td>
-                <td className="p-3 text-left">{kk.provinsi}</td>
                 <td className="p-3 text-left">{kk.jumlah_anggota || '-'}</td>
-                <td className="p-3 text-left">{kk.tanggal_terbit || '-'}</td>
                 <td className="p-3 flex justify-center gap-2">
                   <button
                     onClick={() => handleOpenModal(kk)}
@@ -232,88 +213,113 @@ export default function DataKK() {
         </table>
       </div>
 
-      {/* ----------------- MODAL KITA (FORM SUDAH DIUPDATE) ----------------- */}
-      <dialog 
-        ref={modalRef} 
-        id="crud_modal" 
-        className="modal"
-        onClose={resetFormAndClose}
-      >
-        <div className="modal-box w-11/12 max-w-4xl bg-white p-6 rounded-xl shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-center">
-              {currentKkId ? 'Edit Data KK' : 'Tambah Data KK Baru'}
-            </h2>
-            <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={resetFormAndClose}>✕</button>
-          </div>
+      {/* ----------------- MODAL MANUAL (PASTI TENGAH) ----------------- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           
-          {error && isModalOpen && (
-            <div className="alert alert-warning text-sm p-3 mb-4">
-              <span>{error}</span>
-            </div>
-          )}
+          {/* Container Form */}
+          <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-fade-in-up">
+            
+            {/* Tombol Close di Pojok Kanan Atas */}
+            <button 
+              type="button" 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold"
+              onClick={resetFormAndClose}
+            >
+              ✕
+            </button>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-
-            {/* --- INPUT BARU SESUAI VALIDASI BACKEND --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nomor KK (16 Digit)" name="no_kk" value={formData.no_kk} handle={handleInputChange} type="number" required />
-              <Input label="Nama Kepala Keluarga" name="nama_kepala_keluarga" value={formData.nama_kepala_keluarga} handle={handleInputChange} required />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="NIK Kepala Keluarga" name="nik_kepala_keluarga" value={formData.nik_kepala_keluarga} handle={handleInputChange} type="number" required />
-              <Input label="Tanggal Terbit (YYYY-MM-DD)" name="tanggal_terbit" value={formData.tanggal_terbit} handle={handleInputChange} type="date" />
-            </div>
-
-            <TextArea label="Alamat" name="alamat" value={formData.alamat} handle={handleInputChange} required />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Kelurahan / Desa" name="kelurahan" value={formData.kelurahan} handle={handleInputChange} required />
-              <Input label="Kecamatan" name="kecamatan" value={formData.kecamatan} handle={handleInputChange} required />
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold text-gray-800">
+                {currentKkId ? 'Edit Data Kartu Keluarga' : 'Tambah Kartu Keluarga Baru'}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">Lengkapi data di bawah ini dengan benar.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input label="Kabupaten" name="kabupaten" value={formData.kabupaten} handle={handleInputChange} />
-              <Input label="Provinsi" name="provinsi" value={formData.provinsi} handle={handleInputChange} />
-              <Input label="Kode Pos" name="kode_pos" value={formData.kode_pos} handle={handleInputChange} type="number" />
-            </div>
+            {error && (
+              <div className="alert alert-error mb-4 text-sm p-3 rounded-lg">
+                <span>{error}</span>
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="RT" name="rt" value={formData.rt} handle={handleInputChange} type="number" required />
-              <Input label="RW" name="rw" value={formData.rw} handle={handleInputChange} type="number" required />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Jumlah Anggota" name="jumlah_anggota" value={formData.jumlah_anggota} handle={handleInputChange} type="number" />
-              <Input label="Status Keluarga" name="status_keluarga" value={formData.status_keluarga} handle={handleInputChange} placeholder="Contoh: Kepala Keluarga" />
-            </div>
-            {/* --- SELESAI INPUT BARU --- */}
+              {/* Grid Layout untuk Form yang Lebih Rapi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input label="Nomor KK (16 Digit)" name="no_kk" value={formData.no_kk} handle={handleInputChange} type="number" required />
+                <Input label="Nama Kepala Keluarga" name="nama_kepala_keluarga" value={formData.nama_kepala_keluarga} handle={handleInputChange} required />
+                <Input label="NIK Kepala Keluarga" name="nik_kepala_keluarga" value={formData.nik_kepala_keluarga} handle={handleInputChange} type="number" required />
+                <Input label="Tanggal Terbit" name="tanggal_terbit" value={formData.tanggal_terbit} handle={handleInputChange} type="date" />
+              </div>
 
-            <FormButtons close={resetFormAndClose} />
-          </form>
+              <TextArea label="Alamat Lengkap" name="alamat" value={formData.alamat} handle={handleInputChange} required />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex gap-3">
+                  <Input label="RT" name="rt" value={formData.rt} handle={handleInputChange} type="number" required />
+                  <Input label="RW" name="rw" value={formData.rw} handle={handleInputChange} type="number" required />
+                </div>
+                <Input label="Kode Pos" name="kode_pos" value={formData.kode_pos} handle={handleInputChange} type="number" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input label="Kelurahan / Desa" name="kelurahan" value={formData.kelurahan} handle={handleInputChange} required />
+                <Input label="Kecamatan" name="kecamatan" value={formData.kecamatan} handle={handleInputChange} required />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input label="Kabupaten / Kota" name="kabupaten" value={formData.kabupaten} handle={handleInputChange} />
+                <Input label="Provinsi" name="provinsi" value={formData.provinsi} handle={handleInputChange} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Input label="Jumlah Anggota" name="jumlah_anggota" value={formData.jumlah_anggota} handle={handleInputChange} type="number" />
+                <Input label="Status Keluarga" name="status_keluarga" value={formData.status_keluarga} handle={handleInputChange} placeholder="Contoh: Kepala Keluarga" />
+              </div>
+
+              <hr className="border-gray-200 my-4" />
+
+              {/* Tombol Aksi */}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={resetFormAndClose}
+                  className="px-5 py-2.5 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]"
+                >
+                  Simpan Data
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </dialog>
+      )}
 
     </div>
   );
 }
 
 /* =================================================================== */
-/* == KOMPONEN BAWAAN (DARI FILE ANDA, UNTUK MENJAGA STYLE) == */
+/* == KOMPONEN BAWAAN (HELPER) == */
 /* =================================================================== */
 
 function Input({ label, name, value, handle, type = "text", required = false, placeholder = '' }) {
   return (
-    <div>
-      <label className="block font-medium mb-1">{label}</label>
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label} {required && <span className="text-red-500">*</span>}</label>
       <input
         type={type}
         name={name}
         value={value || ''}
         onChange={handle}
         placeholder={placeholder}
-        className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
         required={required}
       />
     </div>
@@ -322,37 +328,16 @@ function Input({ label, name, value, handle, type = "text", required = false, pl
 
 function TextArea({ label, name, value, handle, required = false }) {
   return (
-    <div>
-      <label className="block font-medium mb-1">{label}</label>
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label} {required && <span className="text-red-500">*</span>}</label>
       <textarea
         name={name}
         value={value || ''}
         onChange={handle}
-        className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
         required={required}
         rows={3}
       />
-    </div>
-  );
-}
-
-function FormButtons({ close }) {
-  return (
-    <div className="flex justify-between mt-6">
-      <button
-        type="button"
-        onClick={close}
-        className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-      >
-        Batal
-      </button>
-
-      <button
-        type="submit"
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-      >
-        Simpan
-      </button>
     </div>
   );
 }
