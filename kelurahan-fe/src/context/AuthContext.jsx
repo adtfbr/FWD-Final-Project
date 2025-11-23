@@ -1,6 +1,4 @@
-// Lokasi file: src/context/AuthContext.jsx
-// KODE FINAL (Sesuai dengan respons API Anda)
-
+// src/context/AuthContext.jsx
 import { createContext, useState, useContext } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -15,92 +13,52 @@ export const AuthProvider = ({ children }) => {
   
   const navigate = useNavigate(); 
 
-  // --- FUNGSI UNTUK ADMIN/PETUGAS ---
-  const loginPetugas = async (email, password) => {
+  // --- FUNGSI LOGIN GENERIK (UTAMA) ---
+  const handleLogin = async (email, password, expectedRole) => {
     try {
-      // Panggil /login
       const response = await api.post('/login', { email, password });
+      const { token, user: userData } = response.data.data;
 
-      // === INI ADALAH PERBAIKANNYA ===
-      // Ambil objek 'data' dari dalam respons
-      const responseData = response.data.data;
-      
-      // Sekarang ambil 'token' dan 'user' dari 'responseData'
-      const { token, user } = responseData;
-      // === SELESAI PERBAIKAN ===
+      if (!token) throw new Error("Token tidak diterima dari server");
 
-      if (!token) {
-        throw new Error("Token tidak diterima dari server");
+      // Validasi Role
+      if (userData.role !== expectedRole) {
+        throw new Error(`Akun ini bukan akun ${expectedRole}.`);
       }
 
-      // Cek Role
-      if (user.role !== 'petugas') {
-        throw new Error("Akun ini bukan akun petugas.");
-      }
-
-      // Simpan ke localStorage dan state
+      // Simpan Data
       localStorage.setItem('authToken', token);
-      localStorage.setItem('authUser', JSON.stringify(user));
-      setUser(user);
+      localStorage.setItem('authUser', JSON.stringify(userData));
+      setUser(userData);
       
-      return user;
+      return userData;
 
     } catch (error) {
-      console.error("Login petugas gagal:", error);
+      console.error(`Login ${expectedRole} gagal:`, error);
       localStorage.removeItem('authToken'); // Bersihkan jika gagal
+      
+      // Error Handling Spesifik
+      if (error.response) {
+        if (error.response.status === 403) throw new Error("Akun Anda sedang menunggu verifikasi atau non-aktif.");
+        if (error.response.status === 401) throw new Error("Email atau password salah.");
+        throw new Error(error.response.data.message || "Terjadi kesalahan pada server.");
+      }
       throw error;
     }
   };
 
-  // --- FUNGSI UNTUK WARGA ---
-  const loginWarga = async (email, password) => {
-    try {
-      // Panggil /login
-      const response = await api.post('/login', { email, password });
+  // Wrapper untuk Petugas
+  const loginPetugas = (email, password) => handleLogin(email, password, 'petugas');
 
-      // === INI ADALAH PERBAIKANNYA ===
-      const responseData = response.data.data;
-      const { token, user } = responseData;
-      // === SELESAI PERBAIKAN ===
+  // Wrapper untuk Warga
+  const loginWarga = (email, password) => handleLogin(email, password, 'warga');
 
-      if (!token) {
-        throw new Error("Token tidak diterima dari server");
-      }
-      
-      // Cek Role
-      if (user.role !== 'warga') {
-        throw new Error("Akun ini bukan akun warga.");
-      }
-      
-      // Simpan ke localStorage dan state
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('authUser', JSON.stringify(user));
-      setUser(user);
-      
-      return user;
-
-    } catch (error) {
-      console.error("Login warga gagal:", error);
-      localStorage.removeItem('authToken'); // Bersihkan jika gagal
-      
-      if (error.response && error.response.status === 403) {
-        throw new Error("Akun Anda sedang menunggu verifikasi petugas.");
-      }
-      if (error.response && error.response.status === 401) {
-         throw new Error("Email atau password salah.");
-      }
-      
-      throw new Error("Login gagal. " + (error.response?.data?.message || error.message));
-    }
-  };
-
-  // (Fungsi registerWarga tidak berubah)
+  // --- FUNGSI REGISTER ---
   const registerWarga = async (formData) => {
     try {
       await api.post('/register', formData);
       return true;
     } catch (error) {
-      console.error("Registrasi gagal:", error);
       if (error.response && error.response.data.errors) {
         const errors = error.response.data.errors;
         const firstError = Object.values(errors)[0][0];
@@ -110,47 +68,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // --- FUNGSI LOGOUT (Umum) ---
+  // --- FUNGSI LOGOUT ---
   const logout = async () => {
     const userRole = user?.role; 
-    
     try {
-      // Kita panggil /logout. api.js akan otomatis mengirim token.
       await api.post('/logout'); 
     } catch (error) {
-      console.error("Error saat logout di server:", error);
+      console.error("Error logout server:", error);
     } finally {
-      // Selalu bersihkan data di frontend
       localStorage.removeItem('authToken');
       localStorage.removeItem('authUser');
       setUser(null);
       
-      if (userRole === 'petugas') {
-        navigate('/admin/login');
-      } else {
-        navigate('/login');
-      }
+      if (userRole === 'petugas') navigate('/admin/login');
+      else navigate('/login');
     }
   };
 
-  // --- PROVIDER VALUE ---
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        loginPetugas, 
-        logout, 
-        loginWarga, 
-        registerWarga 
-      }}
-    >
+    <AuthContext.Provider value={{ user, loginPetugas, loginWarga, logout, registerWarga }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook kustom agar lebih mudah digunakan
 // eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

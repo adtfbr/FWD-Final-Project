@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePengajuanLayananRequest;
 use Illuminate\Http\Request;
 use App\Models\PengajuanLayanan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -13,37 +15,37 @@ class PengajuanLayananController extends Controller
 {
     /**
      * Store (Digunakan oleh WARGA)
+     * Menggunakan Form Request untuk validasi otomatis
      */
-    public function store(Request $request)
+    public function store(StorePengajuanLayananRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'id_jenis_layanan' => 'required|integer|exists:jenis_layanans,id_jenis_layanan',
-            'keterangan' => 'nullable|string',
-        ]);
+        // Validasi sudah otomatis ditangani oleh StorePengajuanLayananRequest.
+        // Jika gagal, Laravel otomatis return response 422 JSON.
 
-        if ($validator->fails()) {
+        try {
+            $pengajuan = PengajuanLayanan::create([
+                'id_user'           => $request->user()->id_user,
+                'id_jenis_layanan'  => $request->id_jenis_layanan,
+                'keterangan'        => $request->keterangan,
+                'status'            => 'Diajukan',
+                'tanggal_pengajuan' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengajuan layanan berhasil dikirim.',
+                'data'    => $pengajuan
+            ], 201);
+
+        } catch (\Exception $e) {
+            // Log error untuk developer
+            Log::error('Gagal menyimpan pengajuan layanan: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Terjadi kesalahan internal saat menyimpan pengajuan.',
+            ], 500);
         }
-
-        $idUser = Auth::id();
-
-        $pengajuan = PengajuanLayanan::create([
-            'id_user' => $idUser,
-            'id_jenis_layanan' => $request->id_jenis_layanan,
-            'keterangan' => $request->keterangan,
-            'status' => 'Diajukan',
-            'tanggal_pengajuan' => now(),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Pengajuan layanan berhasil dikirim.',
-            'data' => $pengajuan
-        ], 201);
     }
 
     /**
@@ -61,7 +63,7 @@ class PengajuanLayananController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Riwayat pengajuan berhasil diambil.',
-            'data' => $riwayat
+            'data'    => $riwayat
         ], 200);
     }
 
@@ -77,7 +79,7 @@ class PengajuanLayananController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Daftar semua pengajuan layanan berhasil diambil.',
-            'data' => $pengajuan
+            'data'    => $pengajuan
         ], 200);
     }
 
@@ -93,7 +95,7 @@ class PengajuanLayananController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Detail pengajuan layanan berhasil diambil.',
-                'data' => $pengajuan
+                'data'    => $pengajuan
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -116,7 +118,7 @@ class PengajuanLayananController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal: Status tidak valid.',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
@@ -138,7 +140,7 @@ class PengajuanLayananController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Status pengajuan berhasil diperbarui.',
-            'data' => $pengajuan
+            'data'    => $pengajuan
         ], 200);
     }
 }

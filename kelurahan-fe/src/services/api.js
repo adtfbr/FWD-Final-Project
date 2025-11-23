@@ -2,9 +2,8 @@
 
 import axios from 'axios';
 
-// 1. TENTUKAN BASE URL API PHP ANDA
-// (Ganti ini jika URL Anda berbeda)
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+// Mengambil URL dari file .env
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // 2. Buat instance axios
 const api = axios.create({
