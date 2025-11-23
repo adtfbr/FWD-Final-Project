@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Penduduk;
 use App\Models\User;
+use App\Models\PengajuanLayanan;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB; // Tambahkan ini untuk Transaction
+use Illuminate\Support\Facades\Log; // Tambahkan ini untuk Logging error
 
 class PendudukController extends Controller
 {
@@ -44,25 +47,38 @@ class PendudukController extends Controller
             ], 422);
         }
 
-        $penduduk = Penduduk::create($request->only([
-            'id_kk', 'nik', 'nama', 'tanggal_lahir', 'jenis_kelamin', 'alamat'
-        ]));
+        // Gunakan transaction untuk memastikan integritas data saat create
+        DB::beginTransaction();
+        try {
+            $penduduk = Penduduk::create($request->only([
+                'id_kk', 'nik', 'nama', 'tanggal_lahir', 'jenis_kelamin', 'alamat'
+            ]));
 
-        if ($request->filled('email') && $request->filled('password')) {
-            User::create([
-                'name' => $penduduk->nama,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'role' => 'warga',
-                'id_penduduk' => $penduduk->id_penduduk,
-            ]);
+            if ($request->filled('email') && $request->filled('password')) {
+                User::create([
+                    'name' => $penduduk->nama,
+                    'email' => $request->email,
+                    'password' => Hash::make($request->password),
+                    'role' => 'warga',
+                    'id_penduduk' => $penduduk->id_penduduk,
+                ]);
+            }
+
+            DB::commit(); // Simpan perubahan jika semua sukses
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data penduduk baru berhasil ditambahkan.',
+                'data' => $penduduk
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Batalkan jika ada error
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambahkan data: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data penduduk baru berhasil ditambahkan.',
-            'data' => $penduduk
-        ], 201);
     }
 
     public function show(string $id)
@@ -126,23 +142,65 @@ class PendudukController extends Controller
         ], 200);
     }
 
+    /**
+     * Menghapus data penduduk dengan Transaction & Cascade Delete Manual
+     */
     public function destroy(string $id)
     {
+        // Mulai Database Transaction
+        DB::beginTransaction();
+
         try {
             $penduduk = Penduduk::findOrFail($id);
+
+            // 1. Hapus Pengajuan Layanan (Relasi: Penduduk -> Pengajuan)
+            // Gunakan query builder delete() agar lebih cepat dan menghindari masalah event model
+            $deletedPengajuan = PengajuanLayanan::where('id_penduduk', $id)->delete();
+
+            // 2. Hapus User Login (Relasi: Penduduk -> User)
+            $deletedUser = User::where('id_penduduk', $id)->delete();
+
+            // 3. Hapus Penduduk itu sendiri
+            $penduduk->delete();
+
+            // Jika sampai sini tidak ada error, commit perubahan ke database
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data penduduk beserta akun dan riwayat layanan berhasil dihapus.'
+            ], 200);
+
         } catch (ModelNotFoundException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Data penduduk tidak ditemukan.'
             ], 404);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            // Cek error spesifik MySQL/MariaDB Foreign Key
+            if ($e->errorInfo[1] == 1451) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus: Data ini masih digunakan di tabel lain (misal: Kepala Keluarga di tabel KK). Hapus/ubah data di tabel terkait terlebih dahulu.'
+                ], 409);
+            }
+
+            Log::error('Query Exception delete penduduk: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Database error: ' . $e->errorInfo[2]
+            ], 500);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('General Exception delete penduduk: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
+            ], 500);
         }
-
-        User::where('id_penduduk', $penduduk->id_penduduk)->delete();
-        $penduduk->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data penduduk (dan akun login terkait) berhasil dihapus.'
-        ], 200);
     }
 }
