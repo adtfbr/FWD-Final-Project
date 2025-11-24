@@ -17,6 +17,7 @@ import DetailPengajuan from "../pages/admin/DetailPengajuan"; // <-- 1. IMPORT B
 import VerifikasiWarga from "../pages/admin/VerifikasiWarga";
 import JenisLayanan from "../pages/admin/JenisLayanan";
 import Laporan from "../pages/admin/Laporan";
+import ManajemenBerita from "../pages/admin/ManajemenBerita";
 
 // --- Halaman Warga ---
 import WargaLogin from "../pages/user/WargaLogin";
@@ -61,7 +62,9 @@ export default function Router() {
 
         <Route path="verifikasi-warga" element={<VerifikasiWarga />} />
         <Route path="jenis-layanan" element={<JenisLayanan />} />
+        <Route path="berita" element={<ManajemenBerita />} />
         <Route path="laporan" element={<Laporan />} />
+        
 
         {/* Redirect /admin → /admin/dashboard */}
         <Route index element={<Navigate to="dashboard" replace />} />

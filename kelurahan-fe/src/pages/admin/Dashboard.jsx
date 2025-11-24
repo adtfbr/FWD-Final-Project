@@ -1,62 +1,69 @@
 // Lokasi file: src/pages/admin/Dashboard.jsx
-// Dashboard Admin — Versi Rapi, Bersih, dan Terstruktur
+// (REVISI MODUL 2: Dashboard dengan Grafik Statistik Interaktif)
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
-
 import {
   FaUsers,
   FaIdCard,
   FaFileAlt,
   FaUserCheck,
   FaArrowRight,
+  FaChartPie,
+  FaChartBar
 } from "react-icons/fa";
 
-// ======================================================================
-// BADGE STATUS
-// ======================================================================
+// --- IMPORT RECHARTS ---
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+// --- WARNA GRAFIK ---
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+
+// --- KOMPONEN BADGE STATUS ---
 const StatusBadge = ({ status }) => {
   const colors = {
-    Diajukan: "bg-yellow-400 text-yellow-900",
-    Diproses: "bg-blue-400 text-blue-900",
-    Selesai: "bg-green-500 text-white",
-    Ditolak: "bg-red-500 text-white",
+    Diajukan: "bg-yellow-100 text-yellow-800",
+    Diproses: "bg-blue-100 text-blue-800",
+    Selesai: "bg-green-100 text-green-800",
+    Ditolak: "bg-red-100 text-red-800",
   };
 
   return (
-    <span
-      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-        colors[status] || "bg-gray-400 text-gray-900"
-      }`}
-    >
+    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[status] || "bg-gray-100 text-gray-800"}`}>
       {status}
     </span>
   );
 };
 
-// ======================================================================
-// DASHBOARD PAGE
-// ======================================================================
 export default function Dashboard() {
   const { user } = useAuth();
 
-  const [stats, setStats] = useState({
-    penduduk: 0,
-    kk: 0,
-    pengajuan: 0,
-  });
-
+  // State Data Mentah
+  const [stats, setStats] = useState({ penduduk: 0, kk: 0, pengajuan: 0 });
   const [pendingCount, setPendingCount] = useState(0);
   const [recentSubmissions, setRecentSubmissions] = useState([]);
+  
+  // State Data Grafik
+  const [genderData, setGenderData] = useState([]);
+  const [serviceData, setServiceData] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ====================================================================
-  // FETCH DATA (Promise.all)
-  // ====================================================================
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -75,23 +82,42 @@ export default function Dashboard() {
         const pengajuan = pengajuanRes.data.data || [];
         const registrations = regRes.data.data || [];
 
-        // Statistik
+        // 1. Set Statistik Angka
         setStats({
           penduduk: penduduk.length,
           kk: kk.length,
           pengajuan: pengajuan.length,
         });
-
         setPendingCount(registrations.length);
 
-        // Sort 5 terbaru
+        // 2. Set Tabel Terbaru (5 data)
         const fiveLatest = [...pengajuan]
-          .sort(
-            (a, b) => new Date(b.created_at) - new Date(a.created_at)
-          )
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           .slice(0, 5);
-
         setRecentSubmissions(fiveLatest);
+
+        // 3. OLAH DATA GRAFIK 1: Jenis Kelamin Penduduk
+        const laki = penduduk.filter(p => p.jenis_kelamin === 'L').length;
+        const perempuan = penduduk.filter(p => p.jenis_kelamin === 'P').length;
+        setGenderData([
+          { name: 'Laki-laki', value: laki },
+          { name: 'Perempuan', value: perempuan },
+        ]);
+
+        // 4. OLAH DATA GRAFIK 2: Pengajuan per Jenis Layanan
+        const serviceCounts = {};
+        pengajuan.forEach(item => {
+          const layananName = item.jenis_layanan?.nama_layanan || 'Lainnya';
+          serviceCounts[layananName] = (serviceCounts[layananName] || 0) + 1;
+        });
+
+        // Transform ke format Recharts
+        const serviceChartData = Object.keys(serviceCounts).map(key => ({
+          name: key.length > 15 ? key.substring(0, 15) + '...' : key, // Potong nama jika kepanjangan
+          jumlah: serviceCounts[key]
+        }));
+        setServiceData(serviceChartData);
+
       } catch (err) {
         setError("Gagal mengambil data dashboard. " + err.message);
       } finally {
@@ -102,199 +128,155 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // ====================================================================
-  // LOADING
-  // ====================================================================
-  if (loading)
-    return (
-      <div className="text-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
+  if (loading) return <div className="text-center p-8"><span className="loading loading-spinner loading-lg"></span></div>;
+  if (error) return <div className="alert alert-error shadow-lg"><div><span>{error}</span></div></div>;
 
-  // ====================================================================
-  // ERROR
-  // ====================================================================
-  if (error)
-    return (
-      <div className="alert alert-error shadow-lg">
-        <div>
-          <span>{error}</span>
-        </div>
-      </div>
-    );
-
-  // ====================================================================
-  // RENDER PAGE
-  // ====================================================================
   return (
-    <div className="p-0 space-y-8">
-      {/* =============================================================== */}
-      {/* HEADER SELAMAT DATANG */}
-      {/* =============================================================== */}
-      <div className="bg-gradient-to- from-blue-600 to-blue-700 p-8 shadow-md rounded-lg text-blue">
-        <h1 className="text-4xl font-bold">
-          Selamat Datang, {user?.name || "Admin"}!
-        </h1>
-        <p className="text-lg opacity-90 mt-2">
-          Ini adalah ringkasan aktivitas di kelurahan Anda.
-        </p>
+    <div className="space-y-8">
+      
+      {/* --- HEADER --- */}
+      <div className="bg-linear-to-r from-blue-600 to-blue-800 p-8 rounded-2xl shadow-xl text-white">
+        <h1 className="text-3xl font-bold">Selamat Datang, {user?.name || "Admin"}!</h1>
+        <p className="text-blue-100 mt-2 text-lg">Berikut adalah ringkasan aktivitas pelayanan di kelurahan Anda.</p>
       </div>
 
-      {/* =============================================================== */}
-      {/* LAYOUT UTAMA */}
-      {/* =============================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ============================================================= */}
-        {/* KOLOM KIRI (AKTIVITAS TERBARU) */}
-        {/* ============================================================= */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-2xl font-semibold">Aktivitas Terbaru</h2>
-
-          <div className="overflow-x-auto shadow-md rounded-lg">
-            <table className="w-full border-collapse">
-              <thead className="bg-blue-600 text-white">
-                <tr>
-                  <th className="p-3 text-left">Nama Pengaju</th>
-                  <th className="p-3 text-left">Jenis Surat</th>
-                  <th className="p-3 text-center">Status</th>
-                  <th className="p-3 text-center">Aksi</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {recentSubmissions.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="4"
-                      className="text-center p-4 bg-white text-gray-600"
-                    >
-                      Belum ada pengajuan surat yang masuk.
-                    </td>
-                  </tr>
-                ) : (
-                  recentSubmissions.map((sub) => (
-                    <tr
-                      key={sub.id_pengajuan || sub.id}
-                      className="border-b bg-white text-gray-700 hover:bg-gray-50"
-                    >
-                      <td className="p-3">
-                        {sub.user?.penduduk?.nama ||
-                          sub.user?.name ||
-                          "Tidak diketahui"}
-                      </td>
-
-                      <td className="p-3">
-                        {sub.jenis_layanan?.nama_layanan || "Tidak diketahui"}
-                      </td>
-
-                      <td className="p-3 text-center">
-                        <StatusBadge status={sub.status} />
-                      </td>
-
-                      <td className="p-3 text-center">
-                        <Link
-                          to={`/admin/pengajuan/${
-                            sub.id_pengajuan || sub.id
-                          }`}
-                          className="px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
-                        >
-                          Detail
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+      {/* --- NOTIFIKASI PENDING --- */}
+      {pendingCount > 0 && (
+        <Link to="/admin/verifikasi-warga">
+          <div className="alert alert-warning shadow-lg cursor-pointer hover:bg-yellow-200 transition-colors border-none">
+            <FaUserCheck size={24} />
+            <div>
+              <h3 className="font-bold text-lg">Verifikasi Dibutuhkan!</h3>
+              <div className="text-sm">Ada {pendingCount} pendaftaran warga baru menunggu persetujuan Anda.</div>
+            </div>
+            <FaArrowRight />
           </div>
+        </Link>
+      )}
 
-          <Link
-            to="/admin/pengajuan-surat"
-            className="text-blue-600 hover:underline font-medium flex items-center gap-2"
-          >
-            Lihat Semua Pengajuan <FaArrowRight size={12} />
+      {/* --- STATISTIK KARTU --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard to="/admin/penduduk" title="Total Penduduk" count={stats.penduduk} icon={<FaUsers />} color="bg-blue-500" />
+        <StatCard to="/admin/kk" title="Total Kartu Keluarga" count={stats.kk} icon={<FaIdCard />} color="bg-emerald-500" />
+        <StatCard to="/admin/pengajuan-surat" title="Total Pengajuan" count={stats.pengajuan} icon={<FaFileAlt />} color="bg-amber-500" />
+      </div>
+
+      {/* --- AREA GRAFIK --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Grafik 1: Komposisi Penduduk */}
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+            <FaChartPie className="text-blue-500" /> Komposisi Penduduk
+          </h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={genderData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  <Cell key="cell-0" fill="#3b82f6" /> {/* Laki: Biru */}
+                  <Cell key="cell-1" fill="#ec4899" /> {/* Perempuan: Pink */}
+                </Pie>
+                <Tooltip />
+                <Legend verticalAlign="bottom" height={36}/>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Grafik 2: Statistik Layanan */}
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+            <FaChartBar className="text-green-500" /> Popularitas Layanan
+          </h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={serviceData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12}} />
+                <Tooltip cursor={{fill: 'transparent'}} />
+                <Bar dataKey="jumlah" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} label={{ position: 'right' }} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+
+      {/* --- TABEL TERBARU --- */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-gray-700">Pengajuan Surat Terbaru</h3>
+          <Link to="/admin/pengajuan-surat" className="text-sm text-blue-600 hover:underline font-medium">
+            Lihat Semua
           </Link>
         </div>
-
-        {/* ============================================================= */}
-        {/* KOLOM KANAN (STATISTIK) */}
-        {/* ============================================================= */}
-        <div className="space-y-6">
-          {/* NOTIFIKASI PENDING */}
-          {pendingCount > 0 && (
-            <Link to="/admin/verifikasi-warga">
-              <div className="alert alert-warning shadow-lg hover:shadow-xl transition-shadow p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FaUserCheck size={20} />
-                  <div>
-                    <h3 className="font-bold">Pendaftaran Warga Pending!</h3>
-                    <p className="text-xs">
-                      Ada {pendingCount} warga baru menunggu persetujuan.
-                    </p>
-                  </div>
-                </div>
-                <FaArrowRight className="text-lg opacity-70" />
-              </div>
-            </Link>
-          )}
-
-          {/* RINGKASAN DATA */}
-          <h2 className="text-2xl font-semibold">Ringkasan Data</h2>
-
-          <div className="space-y-4">
-            {/* CARD 1 */}
-            <SummaryCard
-              to="/admin/penduduk"
-              count={stats.penduduk}
-              title="Total Penduduk"
-              icon={<FaUsers size={20} />}
-              iconColor="bg-blue-100 text-blue-600"
-            />
-
-            {/* CARD 2 */}
-            <SummaryCard
-              to="/admin/kk"
-              count={stats.kk}
-              title="Total Kartu Keluarga"
-              icon={<FaIdCard size={20} />}
-              iconColor="bg-green-100 text-green-600"
-            />
-
-            {/* CARD 3 */}
-            <SummaryCard
-              to="/admin/pengajuan-surat"
-              count={stats.pengajuan}
-              title="Total Pengajuan"
-              icon={<FaFileAlt size={20} />}
-              iconColor="bg-yellow-100 text-yellow-600"
-            />
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left text-gray-600">
+            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+              <tr>
+                <th className="px-6 py-3">Nama Pengaju</th>
+                <th className="px-6 py-3">Jenis Surat</th>
+                <th className="px-6 py-3 text-center">Status</th>
+                <th className="px-6 py-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentSubmissions.length === 0 ? (
+                <tr><td colSpan="4" className="text-center py-6">Belum ada data.</td></tr>
+              ) : (
+                recentSubmissions.map((sub) => (
+                  <tr key={sub.id_pengajuan || sub.id} className="border-b hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      {sub.user?.penduduk?.nama || sub.user?.name || "Warga"}
+                    </td>
+                    <td className="px-6 py-4">
+                      {sub.jenis_layanan?.nama_layanan}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <StatusBadge status={sub.status} />
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <Link
+                        to={`/admin/pengajuan/${sub.id_pengajuan || sub.id}`}
+                        className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                      >
+                        Detail
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
+
     </div>
   );
 }
 
-// ======================================================================
-// KOMPONEN SUMMARY CARD
-// ======================================================================
-const SummaryCard = ({ to, count, title, icon, iconColor }) => (
-  <Link
-    to={to}
-    className="block p-4 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow"
-  >
-    <div className="flex justify-between items-center">
-      <div className="flex items-center gap-4">
-        <div className={`p-3 rounded-full ${iconColor}`}>{icon}</div>
-
-        <div>
-          <p className="text-xl font-bold text-gray-800">{count}</p>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-        </div>
+// --- KOMPONEN KECIL: STAT CARD ---
+const StatCard = ({ to, title, count, icon, color }) => (
+  <Link to={to} className="block">
+    <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all border border-gray-100 flex items-center justify-between group">
+      <div>
+        <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">{title}</p>
+        <p className="text-3xl font-bold text-gray-800 mt-1 group-hover:text-blue-600 transition-colors">{count}</p>
       </div>
-
-      <FaArrowRight className="text-gray-400" />
+      <div className={`p-4 rounded-full text-white shadow-lg ${color} group-hover:scale-110 transition-transform`}>
+        <span className="text-xl">{icon}</span>
+      </div>
     </div>
   </Link>
 );

@@ -147,59 +147,44 @@ class PendudukController extends Controller
      */
     public function destroy(string $id)
     {
-        // Mulai Database Transaction
         DB::beginTransaction();
 
         try {
             $penduduk = Penduduk::findOrFail($id);
 
-            // 1. Hapus Pengajuan Layanan (Relasi: Penduduk -> Pengajuan)
-            // Gunakan query builder delete() agar lebih cepat dan menghindari masalah event model
-            $deletedPengajuan = PengajuanLayanan::where('id_penduduk', $id)->delete();
+            // 1. Cari User yang terhubung dengan Penduduk ini
+            $user = User::where('id_penduduk', $id)->first();
 
-            // 2. Hapus User Login (Relasi: Penduduk -> User)
-            $deletedUser = User::where('id_penduduk', $id)->delete();
+            if ($user) {
+                // 2. Hapus Pengajuan Layanan milik User ini (karena relasinya ke id_user)
+                PengajuanLayanan::where('id_user', $user->id_user)->delete();
 
-            // 3. Hapus Penduduk itu sendiri
+                // 3. Hapus User
+                $user->delete();
+            }
+
+            // 4. Hapus Penduduk
             $penduduk->delete();
 
-            // Jika sampai sini tidak ada error, commit perubahan ke database
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Data penduduk beserta akun dan riwayat layanan berhasil dihapus.'
+                'message' => 'Data penduduk berhasil dihapus.'
             ], 200);
 
         } catch (ModelNotFoundException $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Data penduduk tidak ditemukan.'
-            ], 404);
-
-        } catch (\Illuminate\Database\QueryException $e) {
-            DB::rollBack();
-            // Cek error spesifik MySQL/MariaDB Foreign Key
-            if ($e->errorInfo[1] == 1451) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal menghapus: Data ini masih digunakan di tabel lain (misal: Kepala Keluarga di tabel KK). Hapus/ubah data di tabel terkait terlebih dahulu.'
-                ], 409);
-            }
-
-            Log::error('Query Exception delete penduduk: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Database error: ' . $e->errorInfo[2]
-            ], 500);
+            return response()->json(['message' => 'Data tidak ditemukan.'], 404);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('General Exception delete penduduk: ' . $e->getMessage());
+            // Log error agar developer tahu (opsional)
+            Log::error('Gagal hapus penduduk: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
+                'message' => 'Gagal menghapus: ' . $e->getMessage()
             ], 500);
         }
     }

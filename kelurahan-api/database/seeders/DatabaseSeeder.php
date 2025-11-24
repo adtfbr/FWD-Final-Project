@@ -9,7 +9,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            InitialDataSeeder::class,
+            PetugasSeeder::class,      // 1. Buat Petugas
+            JenisLayananSeeder::class, // 2. Buat Jenis Layanan
+            KkSeeder::class,           // 3. Buat Kartu Keluarga
+            PendudukSeeder::class,     // 4. Buat Penduduk & User Warga
         ]);
     }
 }

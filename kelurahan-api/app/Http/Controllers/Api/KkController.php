@@ -14,7 +14,7 @@ class KkController extends Controller
 {
     public function index()
     {
-        $kks = Kk::orderBy('no_kk', 'asc')->get();
+        $kks = Kk::withCount('penduduks')->orderBy('no_kk', 'asc')->get();
         return response()->json([
             'success' => true,
             'message' => 'Daftar data KK berhasil diambil.',
@@ -26,11 +26,18 @@ class KkController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'no_kk' => 'required|string|size:16|unique:kks',
+            'nama_kepala_keluarga' => 'required|string|max:255',
+            'nik_kepala_keluarga' => 'required|string|size:16',
             'alamat' => 'required|string|max:255',
             'rt' => 'required|string|max:3',
             'rw' => 'required|string|max:3',
             'kelurahan' => 'required|string|max:100',
             'kecamatan' => 'required|string|max:100',
+            'kabupaten' => 'nullable|string',
+            'provinsi' => 'nullable|string',
+            'kode_pos' => 'nullable|string',
+            'jumlah_anggota' => 'nullable|integer',
+            'tanggal_terbit' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -85,11 +92,18 @@ class KkController extends Controller
                 'size:16',
                 Rule::unique('kks')->ignore($id, 'id_kk')
             ],
+            'nama_kepala_keluarga' => 'required|string|max:255',
+            'nik_kepala_keluarga' => 'required|string|size:16',
             'alamat' => 'required|string|max:255',
             'rt' => 'required|string|max:3',
             'rw' => 'required|string|max:3',
             'kelurahan' => 'required|string|max:100',
             'kecamatan' => 'required|string|max:100',
+            'kabupaten' => 'nullable|string',
+            'provinsi' => 'nullable|string',
+            'kode_pos' => 'nullable|string',
+            'jumlah_anggota' => 'nullable|integer',
+            'tanggal_terbit' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {

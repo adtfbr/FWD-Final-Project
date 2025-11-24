@@ -10,7 +10,16 @@ class PengajuanLayanan extends Model
     use HasFactory;
 
     protected $primaryKey = 'id_pengajuan';
-    protected $fillable = ['id_user', 'id_jenis_layanan', 'id_petugas', 'tanggal_pengajuan', 'status', 'keterangan'];
+    protected $fillable = [
+        'id_user',
+        'id_jenis_layanan',
+        'id_petugas',
+        'tanggal_pengajuan',
+        'status',
+        'keterangan',
+        'file_persyaratan',
+        'file_surat_hasil'
+    ];
 
     // Relasi: Satu Pengajuan dimiliki oleh satu User
     public function user()

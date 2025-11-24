@@ -10,7 +10,21 @@ class Kk extends Model
     use HasFactory;
 
     protected $primaryKey = 'id_kk';
-    protected $fillable = ['no_kk', 'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan'];
+    protected $fillable = [
+        'no_kk',
+        'nama_kepala_keluarga',
+        'nik_kepala_keluarga',
+        'alamat',
+        'rt',
+        'rw',
+        'kelurahan',
+        'kecamatan',
+        'kabupaten',
+        'provinsi',
+        'kode_pos',
+        'jumlah_anggota',
+        'tanggal_terbit'
+    ];
 
     // Relasi: Satu KK memiliki banyak Penduduk
     public function penduduks()

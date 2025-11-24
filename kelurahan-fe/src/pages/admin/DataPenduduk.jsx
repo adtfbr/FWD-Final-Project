@@ -1,13 +1,15 @@
 // Lokasi file: src/pages/admin/DataPenduduk.jsx
-// (REVISI FINAL: Dropdown KK Otomatis + Modal Rata Tengah)
+// (REVISI FINAL: +Fitur Search Bar Rapi)
 
 import { useState, useEffect } from "react";
-import { FaEdit, FaTrash, FaPlus } from "react-icons/fa";
+import { FaEdit, FaTrash, FaPlus, FaSearch } from "react-icons/fa"; // Tambah FaSearch
 import api from "../../services/api";
+// Import Helper SweetAlert
+import { showSuccessToast, showErrorToast, showDeleteConfirmation } from "../../utils/sweetalert";
 
 // --- STATE FORM AWAL ---
 const initialFormState = {
-  id_kk: "", // Ini nanti diisi lewat Dropdown
+  id_kk: "",
   nik: "",
   nama: "",
   alamat: "",
@@ -20,41 +22,51 @@ const initialFormState = {
 export default function DataPenduduk() {
   // === STATES ===
   const [pendudukList, setPendudukList] = useState([]);
-  const [kkList, setKkList] = useState([]); // State untuk menyimpan opsi KK
+  const [kkList, setKkList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // State Pencarian
+  const [searchTerm, setSearchTerm] = useState("");
 
   // === MODAL KONTROL ===
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPendudukId, setCurrentPendudukId] = useState(null);
   const [formData, setFormData] = useState(initialFormState);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
-  // === FETCH DATA UTAMA (PENDUDUK & KK) ===
+  // === FETCH DATA ===
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Kita ambil data Penduduk DAN data KK sekaligus menggunakan Promise.all
       const [pendudukRes, kkRes] = await Promise.all([
         api.get("/penduduk"),
         api.get("/kk")
       ]);
 
       setPendudukList(pendudukRes.data.data || []);
-      setKkList(kkRes.data.data || []); // Simpan data KK ke state
+      setKkList(kkRes.data.data || []);
 
     } catch (err) {
-      setError("Gagal mengambil data. " + err.message);
+      const msg = "Gagal mengambil data. " + err.message;
+      setError(msg); 
+      showErrorToast(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  // Jalankan saat pertama kali load
   useEffect(() => {
     fetchData();
   }, []);
+
+  // --- LOGIKA FILTER PENCARIAN ---
+  const filteredPenduduk = pendudukList.filter((item) => 
+    item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.nik.includes(searchTerm)
+  );
 
   // === HANDLERS ===
   const handleInputChange = (e) => {
@@ -71,7 +83,6 @@ export default function DataPenduduk() {
 
   const handleOpenModal = (penduduk = null) => {
     if (penduduk) {
-      // MODE EDIT
       setFormData({
         id_kk: penduduk.id_kk || "",
         nik: penduduk.nik || "",
@@ -84,7 +95,6 @@ export default function DataPenduduk() {
       });
       setCurrentPendudukId(penduduk.id_penduduk || penduduk.id);
     } else {
-      // MODE TAMBAH
       setFormData(initialFormState);
       setCurrentPendudukId(null);
     }
@@ -94,38 +104,45 @@ export default function DataPenduduk() {
   // === SUBMIT ===
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setSubmitLoading(true);
 
     try {
       if (currentPendudukId) {
         await api.put(`/penduduk/${currentPendudukId}`, formData);
+        showSuccessToast("Data penduduk berhasil diperbarui!");
       } else {
         await api.post("/penduduk", formData);
+        showSuccessToast("Data penduduk berhasil ditambahkan!");
       }
 
-      fetchData(); // Refresh data setelah simpan
+      fetchData();
       resetFormAndClose();
     } catch (err) {
       if (err.response && err.response.data.errors) {
         const errors = err.response.data.errors;
         const firstErrorKey = Object.keys(errors)[0];
         const firstErrorMessage = errors[firstErrorKey][0];
-        setError(firstErrorMessage);
+        showErrorToast(firstErrorMessage);
       } else {
-        setError("Gagal menyimpan data. " + err.message);
+        showErrorToast("Gagal menyimpan data. " + err.message);
       }
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
   // === DELETE ===
   const handleDelete = async (id) => {
-    setError(null);
-    if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+    const result = await showDeleteConfirmation();
+    
+    if (result.isConfirmed) {
       try {
         await api.delete(`/penduduk/${id}`);
+        showSuccessToast("Data berhasil dihapus.");
         fetchData();
       } catch (err) {
-        setError("Gagal menghapus data. " + err.message);
+        const msg = err.response?.data?.message || "Gagal menghapus data. " + err.message;
+        showErrorToast(msg);
       }
     }
   };
@@ -140,19 +157,35 @@ export default function DataPenduduk() {
 
   return (
     <div className="p-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
+      
+      {/* HEADER DENGAN SEARCH BAR */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <h1 className="text-3xl font-semibold">Manajemen Data Penduduk</h1>
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <FaPlus size={14} /> Tambah Penduduk
-        </button>
+        <div className="flex w-full md:w-auto gap-3 items-center">
+          {/* Input Pencarian */}
+          <div className="relative w-full md:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="Cari Nama / NIK..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
+          >
+            <FaPlus size={14} /> Tambah Penduduk
+          </button>
+        </div>
       </div>
 
-      {/* Error Global */}
       {error && !isModalOpen && (
         <div className="alert alert-error shadow-lg mb-4">
           <div><span>{error}</span></div>
@@ -167,21 +200,24 @@ export default function DataPenduduk() {
               <th className="p-3 text-center">No</th>
               <th className="p-3 text-left">Nama</th>
               <th className="p-3 text-left">NIK</th>
-              <th className="p-3 text-left">No. KK</th> {/* Diganti dari Alamat agar lebih relevan */}
+              <th className="p-3 text-left">No. KK</th>
+              <th className="p-3 text-left">Alamat</th>
               <th className="p-3 text-center">L/P</th>
               <th className="p-3 text-center">Aksi</th>
             </tr>
           </thead>
 
           <tbody>
-            {pendudukList.length === 0 ? (
+            {filteredPenduduk.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center p-4 bg-white">
-                  Belum ada data penduduk. Silakan tambah data baru.
+                <td colSpan="6" className="text-center p-8 text-gray-500 bg-white">
+                  {searchTerm 
+                    ? `Data "${searchTerm}" tidak ditemukan.` 
+                    : "Belum ada data penduduk. Silakan tambah data baru."}
                 </td>
               </tr>
             ) : (
-              pendudukList.map((penduduk, index) => (
+              filteredPenduduk.map((penduduk, index) => (
                 <tr
                   key={penduduk.id_penduduk || penduduk.id}
                   className="border-b bg-white text-gray-700 hover:bg-gray-50"
@@ -189,9 +225,11 @@ export default function DataPenduduk() {
                   <td className="p-3 text-center">{index + 1}</td>
                   <td className="p-3 text-left">{penduduk.nama}</td>
                   <td className="p-3 text-left">{penduduk.nik}</td>
-                  {/* Tampilkan Nomor KK dari relasi, bukan ID */}
                   <td className="p-3 text-left">
                     {penduduk.kk ? penduduk.kk.no_kk : '-'}
+                  </td>
+                  <td className="p-3 truncate max-w-xs" title={penduduk.alamat}>
+                    {penduduk.alamat}
                   </td>
                   <td className="p-3 text-center">
                     {penduduk.jenis_kelamin}
@@ -206,9 +244,7 @@ export default function DataPenduduk() {
                     </button>
 
                     <button
-                      onClick={() =>
-                        handleDelete(penduduk.id_penduduk || penduduk.id)
-                      }
+                      onClick={() => handleDelete(penduduk.id_penduduk || penduduk.id)}
                       className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-1"
                     >
                       <FaTrash /> Hapus
@@ -221,7 +257,7 @@ export default function DataPenduduk() {
         </table>
       </div>
 
-      {/* ==================== MODAL MANUAL (PASTI TENGAH) ==================== */}
+      {/* ==================== MODAL MANUAL ==================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           
@@ -242,23 +278,15 @@ export default function DataPenduduk() {
               <p className="text-gray-500 text-sm mt-1">Pastikan data sesuai KTP/KK.</p>
             </div>
 
-            {error && (
-              <div className="alert alert-error mb-4 text-sm p-3 rounded-lg">
-                <span>{error}</span>
-              </div>
-            )}
-
             {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* --- REVISI BAGIAN INI: DROPDOWN KK --- */}
               <SelectKK
-                kkList={kkList} // Kirim data KK ke komponen Select
+                kkList={kkList}
                 value={formData.id_kk}
                 handle={handleInputChange}
                 required
               />
-              {/* ------------------------------------ */}
 
               <Input
                 label="Nama Lengkap"
@@ -323,7 +351,7 @@ export default function DataPenduduk() {
                 />
               </div>
 
-              <FormButtons close={resetFormAndClose} />
+              <FormButtons close={resetFormAndClose} loading={submitLoading} />
             </form>
           </div>
         </div>
@@ -332,12 +360,8 @@ export default function DataPenduduk() {
   );
 }
 
-/* ============================================================= */
-/* ======================= KOMPONEN ============================ */
-/* ============================================================= */
+// ... (Komponen Helper SelectKK, Input, TextArea, SelectGender, FormButtons tetap sama seperti sebelumnya)
 
-// --- KOMPONEN BARU: SelectKK ---
-// Menampilkan No KK + Nama Kepala Keluarga agar mudah dipilih
 function SelectKK({ kkList, value, handle, required = false }) {
   return (
     <div className="w-full">
@@ -424,7 +448,7 @@ function SelectGender({ value, handle, required = false }) {
   );
 }
 
-function FormButtons({ close }) {
+function FormButtons({ close, loading }) {
   return (
     <div className="flex justify-end gap-3 mt-6">
       <button
@@ -438,8 +462,9 @@ function FormButtons({ close }) {
       <button
         type="submit"
         className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]"
+        disabled={loading}
       >
-        Simpan Data
+        {loading ? <span className="loading loading-spinner loading-sm"></span> : "Simpan Data"}
       </button>
     </div>
   );

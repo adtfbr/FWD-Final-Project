@@ -11,7 +11,8 @@ import {
   FaSignOutAlt,
   FaUserCircle,
   FaListAlt,
-  FaChartBar
+  FaChartBar,
+  FaNewspaper
 } from "react-icons/fa";
 
 const NavItem = ({ to, icon, children }) => (
@@ -51,6 +52,7 @@ export default function AdminLayout() {
           <NavItem to="/admin/pengajuan-surat" icon={<FaFileAlt />}>Pengajuan Surat</NavItem>
           <NavItem to="/admin/jenis-layanan" icon={<FaListAlt />}>Jenis Layanan</NavItem>
           <NavItem to="/admin/verifikasi-warga" icon={<FaCheckCircle />}>Verifikasi Warga</NavItem>
+          <NavItem to="/admin/berita" icon={<FaNewspaper />}>Berita Desa</NavItem>
           <NavItem to="/admin/laporan" icon={<FaChartBar />}>Laporan</NavItem>
         </ul>
 

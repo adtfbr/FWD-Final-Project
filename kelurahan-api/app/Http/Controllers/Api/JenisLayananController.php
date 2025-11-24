@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class JenisLayananController extends Controller
 {
+    // 1. TAMPILKAN SEMUA DATA
     public function index()
     {
         $layanan = JenisLayanan::orderBy('nama_layanan', 'asc')->get();
@@ -21,6 +22,7 @@ class JenisLayananController extends Controller
         ], 200);
     }
 
+    // 2. TAMBAH DATA BARU
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -45,6 +47,76 @@ class JenisLayananController extends Controller
         ], 201);
     }
 
-    // Catatan: Fungsi show, update, dan destroy belum diimplementasikan
-    // karena tidak ada di spesifikasi awal kita.
+    // 3. DETAIL DATA (SHOW) - PENTING UNTUK EDIT
+    public function show($id)
+    {
+        try {
+            $layanan = JenisLayanan::findOrFail($id);
+            return response()->json([
+                'success' => true,
+                'data' => $layanan
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Data layanan tidak ditemukan.'], 404);
+        }
+    }
+
+    // 4. UPDATE DATA - FUNGSI YANG SEBELUMNYA HILANG
+    public function update(Request $request, $id)
+    {
+        try {
+            // Cari data berdasarkan ID (primary key: id_jenis_layanan)
+            $layanan = JenisLayanan::findOrFail($id);
+
+            $validator = Validator::make($request->all(), [
+                // Validasi unik tapi kecualikan ID ini sendiri agar tidak error saat update diri sendiri
+                'nama_layanan' => 'required|string|max:255|unique:jenis_layanans,nama_layanan,' . $id . ',id_jenis_layanan',
+                'deskripsi' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $layanan->update($request->only(['nama_layanan', 'deskripsi']));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jenis layanan berhasil diperbarui.',
+                'data' => $layanan
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Data tidak ditemukan.'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // 5. HAPUS DATA (DESTROY) - FUNGSI YANG SEBELUMNYA HILANG
+    public function destroy($id)
+    {
+        try {
+            $layanan = JenisLayanan::findOrFail($id);
+            $layanan->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jenis layanan berhasil dihapus.'
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Data tidak ditemukan.'], 404);
+        } catch (\Exception $e) {
+            // Handle jika data sedang digunakan di tabel pengajuan (foreign key error)
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus data. Kemungkinan data ini sedang digunakan dalam riwayat pengajuan.'
+            ], 500);
+        }
+    }
 }

@@ -1,36 +1,39 @@
 // Lokasi file: src/pages/admin/JenisLayanan.jsx
-// (REVISI FINAL: Modal Rata Tengah, Desain Konsisten, +Field Deskripsi)
+// (REVISI FINAL: Search Bar + SweetAlert + Modal Tengah)
 
 import { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa'; // Tambah FaSearch
 import api from '../../services/api'; 
+import { showSuccessToast, showErrorToast, showDeleteConfirmation } from "../../utils/sweetalert";
 
 // --- STATE FORM AWAL ---
 const initialFormState = {
   nama_layanan: '',
-  deskripsi: '', // Ditambahkan agar sesuai backend
+  deskripsi: '', 
 };
 
 export default function JenisLayanan() {
   // === STATES ===
   const [layananList, setLayananList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  // State Pencarian
+  const [searchTerm, setSearchTerm] = useState("");
 
   // --- MODAL KONTROL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentLayananId, setCurrentLayananId] = useState(null); 
   const [formData, setFormData] = useState(initialFormState);
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   // === DATA FETCHING ===
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
       const response = await api.get('/jenis-layanan'); 
       setLayananList(response.data.data || []); 
     } catch (err) {
-      setError("Gagal mengambil data. " + err.message);
+      showErrorToast("Gagal mengambil data. " + err.message);
     } finally {
       setLoading(false);
     }
@@ -39,6 +42,11 @@ export default function JenisLayanan() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // --- FILTER PENCARIAN ---
+  const filteredLayanan = layananList.filter((item) =>
+    item.nama_layanan.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // === HANDLERS ===
   const handleInputChange = (e) => {
@@ -49,61 +57,62 @@ export default function JenisLayanan() {
   const resetFormAndClose = () => {
     setFormData(initialFormState);
     setCurrentLayananId(null);
-    setError(null); 
     setIsModalOpen(false);
   };
 
   const handleOpenModal = (layanan = null) => {
     if (layanan) {
-      // MODE EDIT
       setFormData({
         nama_layanan: layanan.nama_layanan,
         deskripsi: layanan.deskripsi || '',
       });
       setCurrentLayananId(layanan.id_jenis_layanan || layanan.id);
     } else {
-      // MODE TAMBAH
       setFormData(initialFormState);
       setCurrentLayananId(null);
     }
     setIsModalOpen(true); 
   };
 
-  // === CRUD OPERATIONS ===
+  // === SUBMIT (SWEETALERT) ===
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null); 
+    setSubmitLoading(true);
     
     try {
       if (currentLayananId) {
         await api.put(`/jenis-layanan/${currentLayananId}`, formData); 
+        showSuccessToast("Layanan berhasil diperbarui!");
       } else {
         await api.post('/jenis-layanan', formData); 
+        showSuccessToast("Layanan berhasil ditambahkan!");
       }
       
       fetchData(); 
       resetFormAndClose(); 
-      
     } catch (err) {
       if (err.response && err.response.data.errors) {
-        const errors = err.response.data.errors;
-        const firstErrorKey = Object.keys(errors)[0];
-        const firstErrorMessage = errors[firstErrorKey][0];
-        setError(firstErrorMessage); 
+        const firstError = Object.values(err.response.data.errors)[0][0];
+        showErrorToast(firstError);
       } else {
-        setError("Gagal menyimpan data. " + err.message);
+        showErrorToast("Gagal menyimpan data. " + err.message);
       }
+    } finally {
+      setSubmitLoading(false);
     }
   };
 
+  // === DELETE (SWEETALERT) ===
   const handleDelete = async (id) => {
-    setError(null); 
-    if (window.confirm("Yakin ingin menghapus jenis layanan ini?")) {
+    const result = await showDeleteConfirmation("Menghapus layanan ini mungkin mempengaruhi riwayat pengajuan.");
+    
+    if (result.isConfirmed) {
       try {
         await api.delete(`/jenis-layanan/${id}`); 
+        showSuccessToast("Layanan berhasil dihapus.");
         fetchData(); 
       } catch (err) {
-        setError("Gagal menghapus data. " + err.message);
+        showErrorToast("Gagal menghapus data. " + err.message);
       }
     }
   };
@@ -113,25 +122,35 @@ export default function JenisLayanan() {
   return (
     <div className="p-6">
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
+      {/* HEADER DENGAN SEARCH BAR */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <h1 className="text-3xl font-semibold">Manajemen Jenis Layanan</h1>
-        <button
-          onClick={() => handleOpenModal()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <FaPlus size={14} /> Tambah Layanan
-        </button>
+        
+        <div className="flex w-full md:w-auto gap-3 items-center">
+          <div className="relative w-full md:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              placeholder="Cari Nama Layanan..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
+          >
+            <FaPlus size={14} /> Tambah Layanan
+          </button>
+        </div>
       </div>
 
-      {error && !isModalOpen && (
-        <div className="alert alert-error shadow-lg mb-4">
-          <div><span>{error}</span></div>
-        </div>
-      )}
-
       {/* TABLE LIST */}
-      <div className="overflow-x-auto shadow-md rounded-lg">
+      <div className="overflow-x-auto shadow-md rounded-lg bg-white">
         <table className="w-full border-collapse rounded-lg overflow-hidden">
           <thead className="bg-blue-600 text-white">
             <tr>
@@ -143,15 +162,15 @@ export default function JenisLayanan() {
           </thead>
 
           <tbody>
-            {layananList.length === 0 ? (
+            {filteredLayanan.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="text-center p-4 bg-white">
-                    Belum ada jenis layanan yang terdaftar.
+                  <td colSpan="4" className="text-center p-8 text-gray-500">
+                    {searchTerm ? "Layanan tidak ditemukan." : "Belum ada jenis layanan yang terdaftar."}
                   </td>
                 </tr>
             ) : (
-              layananList.map((layanan, index) => (
-                <tr key={layanan.id_jenis_layanan || layanan.id} className="border-b bg-white text-gray-700 hover:bg-gray-50">
+              filteredLayanan.map((layanan, index) => (
+                <tr key={layanan.id_jenis_layanan || layanan.id} className="border-b hover:bg-gray-50">
                   <td className="p-3 text-center">{index + 1}</td>
                   <td className="p-3 text-left font-medium">{layanan.nama_layanan}</td>
                   <td className="p-3 text-left text-gray-500 text-sm truncate max-w-xs">
@@ -162,14 +181,14 @@ export default function JenisLayanan() {
                       onClick={() => handleOpenModal(layanan)}
                       className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm flex items-center gap-1"
                     >
-                      <FaEdit /> Edit
+                      <FaEdit />
                     </button>
 
                     <button
                       onClick={() => handleDelete(layanan.id_jenis_layanan || layanan.id)}
                       className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-1"
                     >
-                      <FaTrash /> Hapus
+                      <FaTrash />
                     </button>
                   </td>
                 </tr>
@@ -184,14 +203,11 @@ export default function JenisLayanan() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl p-6 relative animate-fade-in-up">
             
-            {/* Tombol Close */}
             <button 
               type="button" 
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold"
               onClick={resetFormAndClose}
-            >
-              ✕
-            </button>
+            >✕</button>
 
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-bold text-gray-800">
@@ -200,12 +216,6 @@ export default function JenisLayanan() {
               <p className="text-gray-500 text-sm mt-1">Kelola jenis surat yang tersedia untuk warga.</p>
             </div>
             
-            {error && (
-              <div className="alert alert-error mb-4 text-sm p-3 rounded-lg">
-                <span>{error}</span>
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-5">
               <Input 
                 label="Nama Layanan" 
@@ -224,7 +234,7 @@ export default function JenisLayanan() {
                 placeholder="Penjelasan singkat tentang layanan ini..."
               />
               
-              <FormButtons close={resetFormAndClose} />
+              <FormButtons close={resetFormAndClose} loading={submitLoading} />
             </form>
           </div>
         </div>
@@ -234,10 +244,7 @@ export default function JenisLayanan() {
   );
 }
 
-/* =================================================================== */
-/* == KOMPONEN HELPER (Style Konsisten dengan Halaman Lain) == */
-/* =================================================================== */
-
+// --- KOMPONEN HELPER ---
 function Input({ label, name, value, handle, type = "text", required = false, placeholder = "" }) {
   return (
     <div className="w-full">
@@ -250,7 +257,7 @@ function Input({ label, name, value, handle, type = "text", required = false, pl
         value={value || ''}
         onChange={handle}
         placeholder={placeholder}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 focus:bg-white"
         required={required}
       />
     </div>
@@ -269,14 +276,14 @@ function TextArea({ label, name, value, handle, required = false, placeholder = 
         onChange={handle}
         placeholder={placeholder}
         rows={3}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-gray-50 focus:bg-white"
         required={required}
       />
     </div>
   );
 }
 
-function FormButtons({ close }) {
+function FormButtons({ close, loading }) {
   return (
     <div className="flex justify-end gap-3 mt-6">
       <button
@@ -290,8 +297,9 @@ function FormButtons({ close }) {
       <button
         type="submit"
         className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]"
+        disabled={loading}
       >
-        Simpan Data
+        {loading ? <span className="loading loading-spinner loading-sm"></span> : "Simpan Data"}
       </button>
     </div>
   );

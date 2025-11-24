@@ -1,135 +1,144 @@
 // Lokasi file: src/pages/user/Home.jsx
-// (Dashboard untuk Warga)
+// (REVISI FINAL: Button Alignment Fix)
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../services/api.js';
-import { FaFileAlt, FaCheckCircle, FaSpinner, FaTimesCircle, FaArrowRight } from 'react-icons/fa';
+import { FaFileAlt, FaNewspaper, FaBullhorn, FaHistory } from 'react-icons/fa';
 
-// --- Komponen Badge Status (dari file StatusPengajuan) ---
-const StatusBadge = ({ status }) => {
-  let colorClass = '';
-  let icon = null;
-
-  switch (status) {
-    case 'Diajukan':
-      colorClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      icon = <FaFileAlt className="mr-1" />;
-      break;
-    case 'Diproses':
-      colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
-      icon = <FaSpinner className="mr-1 animate-spin" />;
-      break;
-    case 'Selesai':
-      colorClass = 'bg-green-100 text-green-800 border-green-300';
-      icon = <FaCheckCircle className="mr-1" />;
-      break;
-    case 'Ditolak':
-      colorClass = 'bg-red-100 text-red-800 border-red-300';
-      icon = <FaTimesCircle className="mr-1" />;
-      break;
-    default:
-      colorClass = 'bg-gray-100 text-gray-800 border-gray-300';
-  }
-  return (
-    <span className={`px-3 py-1 rounded-full text-sm font-semibold border inline-flex items-center ${colorClass}`}>
-      {icon} {status}
-    </span>
-  );
-};
+const STORAGE_URL = 'http://127.0.0.1:8000/storage/';
 
 export default function Home() {
-  const { user } = useAuth(); // Ambil data Warga yang login
-  const [latestSubmission, setLatestSubmission] = useState(null);
+  const { user } = useAuth();
+  const [beritaList, setBeritaList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const wargaName = user?.penduduk?.nama || user?.name || "Warga";
-
   useEffect(() => {
-    const fetchLatestSubmission = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        // Ambil SEMUA riwayat
-        const response = await api.get('/pengajuan-layanan/riwayat-saya');
-        const allSubmissions = response.data.data || [];
-
-        // Sortir dari yang terbaru, dan ambil HANYA 1
-        if (allSubmissions.length > 0) {
-          const sorted = [...allSubmissions].sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-          );
-          setLatestSubmission(sorted[0]); // Simpan hanya yang paling baru
-        }
+        const response = await api.get('/berita');
+        setBeritaList(response.data.data || []);
       } catch (err) {
-        if (err.response?.status !== 404) {
-          console.error("Gagal mengambil data riwayat:", err.message);
-        }
+        console.error("Gagal load data:", err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchLatestSubmission();
+    fetchData();
   }, []);
 
   return (
-    <div className="p-0 space-y-8">
-      <div className="bg-gradient-to- from-blue-600 to-blue-700 p-8 shadow-md rounded-lg text-blue">
-        <h1 className="text-4xl font-bold">Selamat Datang, {wargaName}!</h1>
-        <p className="text-lg opacity-90 mt-2">Ini adalah halaman layanan mandiri Anda.</p>
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <div className="bg-linear-to-r from-blue-600 to-blue-800 p-10 rounded-2xl shadow-xl text-white flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold">Halo, {user?.penduduk?.nama || user?.name}!</h1>
+          <p className="text-blue-100 mt-2 text-lg max-w-xl leading-relaxed">
+            Selamat datang di Portal Layanan Digital Kelurahan. Urus surat menyurat kini lebih mudah, cepat, dan transparan dari rumah.
+          </p>
+          
+          {/* --- REVISI BAGIAN TOMBOL --- */}
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link 
+              to="/pengajuan" 
+              className="btn bg-white text-blue-700 hover:bg-gray-100 border-none shadow-lg font-bold px-6 h-12 flex items-center gap-2 rounded-lg"
+            >
+              <FaFileAlt /> Buat Pengajuan
+            </Link>
+            
+            <Link 
+              to="/status" 
+              className="btn btn-outline text-white border-white hover:bg-white hover:text-blue-700 px-6 h-12 flex items-center gap-2 rounded-lg"
+            >
+              <FaHistory /> Cek Status
+            </Link>
+          </div>
+          {/* --------------------------- */}
+
+        </div>
+        
+        {/* Ilustrasi Background */}
+        <div className="hidden md:block opacity-10 absolute -right-5 -bottom-10 transform rotate-12">
+          <FaBullhorn size={250} />
+        </div>
       </div>
 
+      {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Kolom Kiri: Berita & Pengumuman */}
         <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-2xl font-semibold">Aksi Cepat</h2>
-          
-          <Link 
-            to="/pengajuan" 
-            className="block p-8 bg-white shadow-md rounded-lg hover:shadow-lg transition-shadow text-center"
-          >
-            <FaFileAlt size={50} className="mx-auto text-blue-600 mb-4" />
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Buat Pengajuan Surat Baru
-            </h3>
-            <p className="text-gray-500 mb-4">
-              Ajukan Surat Keterangan Tidak Mampu (SKTM), Domisili, dan lainnya secara online.
-            </p>
-            <span className="font-semibold text-blue-600 flex items-center justify-center gap-2">
-              Mulai Sekarang <FaArrowRight size={12} />
-            </span>
-          </Link>
+          <div className="flex items-center justify-between border-b pb-4">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <FaNewspaper className="text-blue-600" /> Berita & Pengumuman
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-10"><span className="loading loading-spinner loading-lg text-blue-500"></span></div>
+          ) : beritaList.length === 0 ? (
+            <div className="alert bg-blue-50 text-blue-900 border-blue-100 flex items-center gap-3">
+              <FaBullhorn className="text-xl" />
+              <span>Belum ada pengumuman terbaru dari kelurahan.</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {beritaList.map((berita) => (
+                <div key={berita.id_berita} className="card bg-white shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group flex flex-col h-full">
+                  <figure className="h-48 bg-gray-100 relative overflow-hidden shrink-0">
+                    {berita.gambar ? (
+                      <img 
+                        src={`${STORAGE_URL}${berita.gambar}`} 
+                        alt={berita.judul} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full text-gray-300">
+                        <FaNewspaper size={50} />
+                      </div>
+                    )}
+                  </figure>
+                  <div className="card-body p-5 flex flex-col grow">
+                    <div className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">
+                      {new Date(berita.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                    <h3 className="card-title text-lg font-bold text-gray-800 leading-snug mb-2">
+                      {berita.judul}
+                    </h3>
+                    <p className="text-sm text-gray-600 line-clamp-3 mb-0">
+                      {berita.isi}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <h2 className="text-2xl font-semibold">Status Pengajuan Terakhir</h2>
-          
-          <div className="bg-white p-6 shadow-md rounded-lg">
-            {loading ? (
-              <div className="text-center"><span className="loading loading-spinner"></span></div>
-            ) : latestSubmission ? (
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">
-                  {latestSubmission.jenis_layanan?.nama_layanan}
-                </h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Diajukan pada: {new Date(latestSubmission.created_at).toLocaleDateString('id-ID')}
-                </p>
-                <StatusBadge status={latestSubmission.status} />
-                <Link 
-                  to="/status" 
-                  className="text-blue-600 hover:underline font-medium flex items-center gap-2 mt-4 text-sm"
-                >
-                  Lihat Semua Riwayat <FaArrowRight size={12} />
-                </Link>
-              </div>
-            ) : (
-              <div className="text-center text-gray-500">
-                <p>Anda belum memiliki riwayat pengajuan.</p>
-              </div>
-            )}
+        {/* Kolom Kanan: Quick Access & Info */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h3 className="font-bold text-gray-700 mb-4 border-b pb-2">Jam Operasional</h3>
+            <ul className="space-y-3 text-sm text-gray-600">
+              <li className="flex justify-between"><span>Senin - Kamis</span> <span className="font-semibold text-gray-900">08:00 - 15:00</span></li>
+              <li className="flex justify-between"><span>Jumat</span> <span className="font-semibold text-gray-900">08:00 - 11:00</span></li>
+              <li className="flex justify-between text-red-500 font-medium"><span>Sabtu - Minggu</span> <span>Tutup</span></li>
+            </ul>
+          </div>
+
+          <div className="bg-linear-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+            <h3 className="font-bold text-blue-800 mb-2">Butuh Bantuan?</h3>
+            <p className="text-sm text-blue-700 mb-4 leading-relaxed">
+              Jika mengalami kendala dalam pengajuan atau aplikasi, silakan hubungi petugas kami.
+            </p>
+            <button className="btn bg-green-500 hover:bg-green-600 text-white border-none w-full shadow-sm font-bold">
+              Chat WhatsApp Petugas
+            </button>
           </div>
         </div>
+
       </div>
     </div>
   );

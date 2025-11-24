@@ -1,66 +1,71 @@
 // Lokasi file: src/pages/user/FormPengajuan.jsx
-// (Form Warga untuk F-P3)
-
 import { useState, useEffect } from 'react';
 import api from '../../services/api'; 
-import { FaPaperPlane } from 'react-icons/fa';
+import { FaPaperPlane, FaFileUpload } from 'react-icons/fa';
 
 export default function FormPengajuan() {
-  // === STATES ===
-  const [layananList, setLayananList] = useState([]); // Untuk dropdown
-  const [idJenisLayanan, setIdJenisLayanan] = useState(''); // Pilihan dropdown
-  const [keterangan, setKeterangan] = useState(''); // Isi textarea
+  const [layananList, setLayananList] = useState([]); 
+  const [idJenisLayanan, setIdJenisLayanan] = useState(''); 
+  const [keterangan, setKeterangan] = useState(''); 
+  const [filePersyaratan, setFilePersyaratan] = useState(null);
 
-  const [loading, setLoading] = useState(true); // Loading untuk dropdown
-  const [submitLoading, setSubmitLoading] = useState(false); // Loading saat kirim
+  const [loading, setLoading] = useState(true); 
+  const [submitLoading, setSubmitLoading] = useState(false); 
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // === 1. AMBIL DATA JENIS LAYANAN (untuk Dropdown) ===
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        setError(null);
-        // F-P3: Ambil daftar layanan yang DIBUAT ADMIN
         const response = await api.get('/jenis-layanan'); 
         setLayananList(response.data.data || []); 
+      // eslint-disable-next-line no-unused-vars
       } catch (err) {
-        setError("Gagal mengambil daftar layanan. " + err.message);
+        setError("Gagal mengambil layanan.");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []); // Dijalankan sekali saat halaman dibuka
+  }, []);
 
-  // === 2. FUNGSI KIRIM PENGAJUAN (POST) ===
+  const handleFileChange = (e) => {
+    setFilePersyaratan(e.target.files[0]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     setSubmitLoading(true);
 
+    // Gunakan FormData untuk kirim file
+    const formData = new FormData();
+    formData.append('id_jenis_layanan', idJenisLayanan);
+    formData.append('keterangan', keterangan);
+    if (filePersyaratan) {
+      formData.append('file_persyaratan', filePersyaratan);
+    }
+
     try {
-      // F-P3: Kirim data pengajuan baru
-      await api.post('/pengajuan-layanan', {
-        id_jenis_layanan: idJenisLayanan,
-        keterangan: keterangan,
+      // Header 'multipart/form-data' otomatis dihandle axios saat pakai FormData
+      await api.post('/pengajuan-layanan', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       
-      // Jika sukses
-      setSuccess('Pengajuan Anda berhasil terkirim! Silakan cek halaman "Status Pengajuan" untuk melihat progres.');
-      // Kosongkan form
+      setSuccess('Pengajuan berhasil dikirim!');
       setIdJenisLayanan('');
       setKeterangan('');
+      setFilePersyaratan(null);
+      // Reset input file visual
+      document.getElementById('fileInput').value = "";
 
     } catch (err) {
-      // Tangani error validasi
-      if (err.response && err.response.data.errors) {
-        const errors = err.response.data.errors;
-        const firstErrorKey = Object.keys(errors)[0];
-        const firstErrorMessage = errors[firstErrorKey][0];
-        setError(firstErrorMessage);
+      if (err.response?.data?.errors) {
+        setError(Object.values(err.response.data.errors)[0][0]);
       } else {
         setError("Gagal mengirim pengajuan. " + err.message);
       }
@@ -69,112 +74,81 @@ export default function FormPengajuan() {
     }
   };
   
-  if (loading) return <div className="text-center p-8"><span className="loading loading-spinner loading-lg"></span></div>;
+  if (loading) return <div className="text-center p-8"><span className="loading loading-spinner"></span></div>;
 
   return (
-    <div className="p-0"> {/* Hapus padding 'p-6' agar card menempel */}
+    <div className="p-0">
       <h1 className="text-3xl font-semibold mb-6">Buat Pengajuan Surat</h1>
 
-      {/* Tampilkan error global (selain loading dropdown) */}
-      {error && (
-        <div className="alert alert-error shadow-lg mb-4">
-          <div><span>{error}</span></div>
-        </div>
-      )}
-      {/* Tampilkan pesan sukses */}
-      {success && (
-        <div className="alert alert-success shadow-lg mb-4">
-          <div><span>{success}</span></div>
-        </div>
-      )}
+      {error && <div className="alert alert-error shadow-lg mb-4"><span>{error}</span></div>}
+      {success && <div className="alert alert-success shadow-lg mb-4"><span>{success}</span></div>}
 
-      {/* --- FORM PENGAJUAN (Style Anda) --- */}
       <div className="bg-white p-6 shadow-md rounded-lg">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* --- Dropdown Jenis Layanan --- */}
-          <SelectLayanan 
-            value={idJenisLayanan} 
-            handle={(e) => setIdJenisLayanan(e.target.value)} 
-            options={layananList}
-            disabled={layananList.length === 0} // Disable jika admin belum isi
-            required
-          />
+          <div>
+            <label className="block font-medium mb-1">Jenis Layanan Surat</label>
+            <select
+              value={idJenisLayanan} 
+              onChange={(e) => setIdJenisLayanan(e.target.value)} 
+              className="w-full p-2 border rounded-lg bg-white"
+              required
+            >
+              <option value="">-- Pilih Jenis Surat --</option>
+              {layananList.map(opt => (
+                <option key={opt.id_jenis_layanan} value={opt.id_jenis_layanan}>{opt.nama_layanan}</option>
+              ))}
+            </select>
+          </div>
 
-          {/* --- Textarea Keterangan --- */}
-          <TextArea 
-            label="Keterangan / Keperluan" 
-            name="keterangan" 
-            value={keterangan} 
-            handle={(e) => setKeterangan(e.target.value)}
-            placeholder="Contoh: Untuk keperluan mendaftar beasiswa..."
-            required 
-          />
+          <div>
+            <label className="block font-medium mb-1">Upload Persyaratan (KTP/Pengantar)</label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition">
+                <input 
+                    id="fileInput"
+                    type="file" 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    required
+                />
+                <label htmlFor="fileInput" className="cursor-pointer flex flex-col items-center justify-center">
+                    <FaFileUpload className="text-3xl text-gray-400 mb-2" />
+                    <span className="text-blue-600 font-medium">Klik untuk upload file</span>
+                    <span className="text-xs text-gray-500 mt-1">Format: PDF, JPG, PNG (Max 2MB)</span>
+                    {filePersyaratan && (
+                        <div className="mt-3 badge badge-primary p-3">
+                            {filePersyaratan.name}
+                        </div>
+                    )}
+                </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-medium mb-1">Keterangan / Keperluan</label>
+            <textarea
+              value={keterangan} 
+              onChange={(e) => setKeterangan(e.target.value)}
+              className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
+              required 
+              rows={4}
+              placeholder="Contoh: Untuk keperluan mendaftar beasiswa..."
+            />
+          </div>
           
-          {/* --- Tombol Aksi --- */}
           <div className="flex justify-end mt-6">
             <button
               type="submit"
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
               disabled={submitLoading}
             >
-              {submitLoading ? (
-                <span className="loading loading-spinner loading-sm"></span>
-              ) : (
-                <FaPaperPlane />
-              )}
+              {submitLoading ? <span className="loading loading-spinner loading-sm"></span> : <FaPaperPlane />}
               Kirim Pengajuan
             </button>
           </div>
         </form>
       </div>
-    </div>
-  );
-}
-
-
-/* =================================================================== */
-/* == KOMPONEN BAWAAN (DARI FILE ANDA, UNTUK MENJAGA STYLE) == */
-/* =================================================================== */
-
-function SelectLayanan({ value, handle, options, disabled, required = false }) {
-  return (
-    <div>
-      <label className="block font-medium mb-1">Jenis Layanan Surat</label>
-      <select
-        name="id_jenis_layanan"
-        value={value || ''}
-        onChange={handle}
-        className="w-full p-2 border rounded-lg"
-        required={required}
-        disabled={disabled}
-      >
-        <option value="">
-          {disabled ? "Admin belum mendaftarkan layanan" : "-- Pilih Jenis Surat --"}
-        </option>
-        {options.map(opt => (
-          <option key={opt.id_jenis_layanan || opt.id} value={opt.id_jenis_layanan || opt.id}>
-            {opt.nama_layanan}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function TextArea({ label, name, value, handle, required = false, placeholder = "" }) {
-  return (
-    <div>
-      <label className="block font-medium mb-1">{label}</label>
-      <textarea
-        name={name}
-        value={value || ''}
-        onChange={handle}
-        className="w-full p-2 border rounded-lg focus:ring focus:ring-blue-300"
-        required={required}
-        placeholder={placeholder}
-        rows={4}
-      />
     </div>
   );
 }

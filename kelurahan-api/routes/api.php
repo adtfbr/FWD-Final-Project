@@ -8,10 +8,14 @@ use App\Http\Controllers\Api\PendudukController;
 use App\Http\Controllers\Api\KkController;
 use App\Http\Controllers\Api\PengajuanLayananController;
 use App\Http\Controllers\Api\RegistrationController;
+use App\Http\Controllers\Api\BeritaController;
 
 // Rute Publik
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
+
+Route::get('/berita', [BeritaController::class, 'index']);
+Route::get('/berita/{id}', [BeritaController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -26,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- Rute CRUD Kartu Keluarga (KK) ---
     Route::apiResource('/kk', KkController::class)->middleware('role:petugas');
+
+    Route::get('/file/download', [PengajuanLayananController::class, 'downloadFile']);
 
     // --- Rute Pengajuan Layanan (Untuk WARGA) ---
     Route::middleware('role:warga')->group(function () {
@@ -43,5 +49,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/registrations', [RegistrationController::class, 'index']); // pending
         Route::put('/registrations/{id}/approve', [RegistrationController::class, 'approve']); // Setujui
         Route::delete('/registrations/{id}/reject', [RegistrationController::class, 'reject']); // Tolak
+
+        Route::apiResource('jenis-layanan', JenisLayananController::class);
+
+        Route::post('/berita', [BeritaController::class, 'store']);
+        Route::delete('/berita/{id}', [BeritaController::class, 'destroy']);
     });
 });

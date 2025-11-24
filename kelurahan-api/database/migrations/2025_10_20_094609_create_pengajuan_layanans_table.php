@@ -19,6 +19,8 @@ return new class extends Migration
             $table->date('tanggal_pengajuan');
             $table->enum('status', ['Diajukan', 'Diproses', 'Selesai', 'Ditolak'])->default('Diajukan');
             $table->text('keterangan')->nullable();
+            $table->string('file_persyaratan')->nullable();
+            $table->string('file_surat_hasil')->nullable();
             $table->timestamps();
         });
     }
