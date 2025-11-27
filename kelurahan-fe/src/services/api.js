@@ -31,6 +31,22 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
-// 4. (PENTING) Ini yang dicari oleh file lain
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Jika server membalas dengan 401 (Unauthorized)
+    if (error.response && error.response.status === 401) {
+      // Hapus token lama
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userData');
+      
+      // Paksa reload ke halaman login (opsional: bisa pakai navigate juga)
+      // window.location.href = '/login-warga'; // Atau arahkan ke landing page
+    }
+    return Promise.reject(error);
+  }
+);
 export default api;

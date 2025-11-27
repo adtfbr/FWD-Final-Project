@@ -30,7 +30,7 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => ['Content-Disposition'], // Agar nama file terbaca
+    'exposed_headers' => ['Content-Disposition', 'Authorization'],
 
     'max_age' => 0,
 

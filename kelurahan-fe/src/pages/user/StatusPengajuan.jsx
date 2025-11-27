@@ -1,5 +1,5 @@
 // Lokasi file: src/pages/user/StatusPengajuan.jsx
-// (REVISI FINAL: Fix CORS Download & Layout Tombol)
+// (REVISI FINAL: Metode Direct Link - Kompatibel dengan IDM)
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,8 +13,11 @@ import {
   FaEye
 } from 'react-icons/fa';
 
-// URL Storage hanya untuk VIEW (Lihat), bukan download via Axios
+// URL untuk VIEW (Lihat file statis)
 const STORAGE_URL = 'http://127.0.0.1:8000/storage/';
+
+// URL untuk DOWNLOAD (Lewat API Laravel yang baru kita pindah ke publik)
+const API_DOWNLOAD_URL = 'http://127.0.0.1:8000/api/file/download';
 
 const StatusBadge = ({ status }) => {
   let colorClass = '';
@@ -53,8 +56,6 @@ export default function StatusPengajuan() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const [downloadingId, setDownloadingId] = useState(null);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -71,38 +72,7 @@ export default function StatusPengajuan() {
     fetchData();
   }, []);
 
-  // --- FUNGSI DOWNLOAD VIA API (SOLUSI CORS) ---
-  const handleDownload = async (filePath, fileName, id) => {
-    try {
-      setDownloadingId(id);
-      
-      // Panggil endpoint API Laravel kita, bukan file statis langsung
-      const response = await api.get('/file/download', {
-        params: { path: filePath }, // Kirim path file sebagai query param
-        responseType: 'blob',       // Penting: Minta respon binary
-      });
-
-      // Buat link download virtual
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Gunakan nama file yang diinginkan
-      const downloadName = fileName || 'dokumen-surat.pdf';
-      link.setAttribute('download', downloadName);
-      
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-    } catch (err) {
-      console.error("Gagal download:", err);
-      alert("Gagal mendownload file. Kemungkinan file tidak ditemukan di server.");
-    } finally {
-      setDownloadingId(null);
-    }
-  };
+  // (Fungsi handleDownload DIHAPUS karena kita pakai link langsung)
 
   if (loading) return <div className="text-center p-8"><span className="loading loading-spinner loading-lg"></span></div>;
   if (error) return <div className="alert alert-error shadow-lg"><div><span>{error}</span></div></div>;
@@ -162,26 +132,15 @@ export default function StatusPengajuan() {
                 {/* Logic Tombol: Hanya muncul jika Selesai & File Ada */}
                 {sub.status === 'Selesai' ? (
                   sub.file_surat_hasil ? (
-                    <button
-                      onClick={() => handleDownload(
-                        sub.file_surat_hasil, 
-                        `Surat-${sub.jenis_layanan?.nama_layanan}.pdf`, 
-                        sub.id_pengajuan || sub.id
-                      )}
-                      disabled={downloadingId === (sub.id_pengajuan || sub.id)}
+                    // GUNAKAN TAG <a> BIASA AGAR IDM BISA MENANGKAPNYA
+                    <a
+                      href={`${API_DOWNLOAD_URL}?path=${encodeURIComponent(sub.file_surat_hasil)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="btn bg-green-600 hover:bg-green-700 text-white w-full shadow-sm border-none flex items-center justify-center gap-2 normal-case text-sm h-10 min-h-0"
                     >
-                      {downloadingId === (sub.id_pengajuan || sub.id) ? (
-                        <>
-                          <span className="loading loading-spinner loading-xs"></span>
-                          Mengunduh...
-                        </>
-                      ) : (
-                        <>
-                          <FaDownload /> Download Surat
-                        </>
-                      )}
-                    </button>
+                      <FaDownload /> Download Surat
+                    </a>
                   ) : (
                     <div className="w-full text-center py-2 bg-gray-100 rounded text-xs text-gray-500 border">
                       File belum diupload petugas
