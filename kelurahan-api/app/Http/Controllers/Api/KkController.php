@@ -14,10 +14,9 @@ class KkController extends Controller
 {
     public function index(Request $request)
     {
-        // Mulai Query dengan hitungan jumlah penduduk
         $query = Kk::withCount('penduduks');
 
-        // 1. Fitur Pencarian
+        // Logika Pencarian
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -26,8 +25,13 @@ class KkController extends Controller
             });
         }
 
-        // 2. Pagination (10 per halaman)
-        $kks = $query->orderBy('no_kk', 'asc')->paginate(10);
+        // --- PERBAIKAN DISINI ---
+        if ($request->has('limit') && $request->limit == 'all') {
+            $kks = $query->orderBy('no_kk', 'asc')->get();
+        } else {
+            $kks = $query->orderBy('no_kk', 'asc')->paginate(10);
+        }
+        // ------------------------
 
         return response()->json([
             'success' => true,

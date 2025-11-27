@@ -71,8 +71,8 @@ export default function Dashboard() {
         setError(null);
 
         const [pendudukRes, kkRes, pengajuanRes, regRes] = await Promise.all([
-          api.get("/penduduk"),
-          api.get("/kk"),
+          api.get("/penduduk?limit=all"), // Minta semua data
+          api.get("/kk?limit=all"),       // Minta semua data
           api.get("/pengajuan-layanan"),
           api.get("/registrations"),
         ]);
@@ -165,7 +165,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Grafik 1: Komposisi Penduduk */}
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 min-w-0">
           <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
             <FaChartPie className="text-blue-500" /> Komposisi Penduduk
           </h3>
@@ -194,13 +194,17 @@ export default function Dashboard() {
         </div>
 
         {/* Grafik 2: Statistik Layanan */}
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 min-w-0">
           <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
             <FaChartBar className="text-green-500" /> Popularitas Layanan
           </h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={serviceData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+              <BarChart 
+                data={serviceData} 
+                layout="vertical" 
+                margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" width={100} tick={{fontSize: 12}} />
@@ -210,7 +214,6 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
-
       </div>
 
       {/* --- TABEL TERBARU --- */}

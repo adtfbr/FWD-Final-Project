@@ -63,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Manajemen Berita
         Route::post('/berita', [BeritaController::class, 'store']);
+        // Tambahkan rute ini agar bisa update:
+        Route::match(['put', 'patch', 'post'], '/berita/{id}', [BeritaController::class, 'update']);
         Route::delete('/berita/{id}', [BeritaController::class, 'destroy']);
     });
 });

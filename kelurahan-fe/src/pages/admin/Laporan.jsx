@@ -43,7 +43,7 @@ export default function Laporan() {
 
         const [submissionRes, populationRes] = await Promise.all([
           api.get("/pengajuan-layanan"),
-          api.get("/penduduk")
+          api.get("/penduduk?limit=all")
         ]);
 
         const submissions = submissionRes.data.data || [];

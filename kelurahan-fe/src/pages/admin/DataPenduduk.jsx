@@ -1,11 +1,21 @@
 // Lokasi file: src/pages/admin/DataPenduduk.jsx
-// (REVISI FINAL: +Fitur Search Bar Rapi)
+// (REVISI FINAL: Server-side Pagination & Search)
 
 import { useState, useEffect } from "react";
-import { FaEdit, FaTrash, FaPlus, FaSearch } from "react-icons/fa"; // Tambah FaSearch
+import {
+  FaEdit,
+  FaTrash,
+  FaPlus,
+  FaSearch,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 import api from "../../services/api";
-// Import Helper SweetAlert
-import { showSuccessToast, showErrorToast, showDeleteConfirmation } from "../../utils/sweetalert";
+import {
+  showSuccessToast,
+  showErrorToast,
+  showDeleteConfirmation,
+} from "../../utils/sweetalert";
 
 // --- STATE FORM AWAL ---
 const initialFormState = {
@@ -22,12 +32,19 @@ const initialFormState = {
 export default function DataPenduduk() {
   // === STATES ===
   const [pendudukList, setPendudukList] = useState([]);
-  const [kkList, setKkList] = useState([]);
+  const [kkList, setKkList] = useState([]); // List KK untuk dropdown
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // State Pencarian
+  // State Pagination & Search
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    last_page: 1,
+    total: 0,
+    from: 0,
+    to: 0,
+  });
 
   // === MODAL KONTROL ===
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,40 +52,89 @@ export default function DataPenduduk() {
   const [formData, setFormData] = useState(initialFormState);
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // === FETCH DATA ===
-  const fetchData = async () => {
+  // === FETCH DATA (SERVER SIDE PAGINATION) ===
+  const fetchData = async (page = 1, search = "") => {
     try {
       setLoading(true);
       setError(null);
 
-      const [pendudukRes, kkRes] = await Promise.all([
-        api.get("/penduduk"),
-        api.get("/kk")
-      ]);
+      // Request data penduduk dengan parameter page & search
+      const response = await api.get(`/penduduk?page=${page}&search=${search}`);
+      const responseData = response.data.data; // Objek pagination Laravel
 
-      setPendudukList(pendudukRes.data.data || []);
-      setKkList(kkRes.data.data || []);
+      // Simpan list penduduk (ada di dalam properti .data)
+      setPendudukList(responseData.data || []);
 
+      // Simpan meta data pagination
+      setPagination({
+        last_page: responseData.last_page,
+        total: responseData.total,
+        from: responseData.from,
+        to: responseData.to,
+      });
     } catch (err) {
       const msg = "Gagal mengambil data. " + err.message;
-      setError(msg); 
+      setError(msg);
       showErrorToast(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // === FETCH DATA KK (UNTUK DROPDOWN) ===
+  const fetchKKList = async () => {
+    try {
+      const response = await api.get("/kk"); // Catatan: Ini mengambil page 1 dari KK
+      const dataKK = response.data.data;
+      // Handle jika backend KK juga mengembalikan pagination
+      if (dataKK.data) {
+        setKkList(dataKK.data);
+      } else {
+        setKkList(dataKK); // Fallback jika backend mengembalikan array langsung
+      }
+    } catch (err) {
+      console.error("Gagal load KK:", err);
+    }
+  };
+
+  // Efek Pertama Kali Load
   useEffect(() => {
-    fetchData();
+    fetchData(1, "");
+    fetchKKList();
   }, []);
 
-  // --- LOGIKA FILTER PENCARIAN ---
-  const filteredPenduduk = pendudukList.filter((item) => 
-    item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.nik.includes(searchTerm)
-  );
+  // Efek Search Debounce (Mencegah request berlebihan saat mengetik)
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      // Reset ke halaman 1 setiap kali search berubah
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchData(1, searchTerm);
+      }
+    }, 500); // Tunggu 500ms
+
+    return () => clearTimeout(delaySearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  // Efek Ganti Halaman
+  useEffect(() => {
+    fetchData(currentPage, searchTerm);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // === HANDLERS ===
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.last_page) {
+      setCurrentPage(newPage);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -115,7 +181,7 @@ export default function DataPenduduk() {
         showSuccessToast("Data penduduk berhasil ditambahkan!");
       }
 
-      fetchData();
+      fetchData(currentPage, searchTerm); // Refresh halaman saat ini
       resetFormAndClose();
     } catch (err) {
       if (err.response && err.response.data.errors) {
@@ -134,30 +200,22 @@ export default function DataPenduduk() {
   // === DELETE ===
   const handleDelete = async (id) => {
     const result = await showDeleteConfirmation();
-    
+
     if (result.isConfirmed) {
       try {
         await api.delete(`/penduduk/${id}`);
         showSuccessToast("Data berhasil dihapus.");
-        fetchData();
+        fetchData(currentPage, searchTerm); // Refresh data
       } catch (err) {
-        const msg = err.response?.data?.message || "Gagal menghapus data. " + err.message;
+        const msg =
+          err.response?.data?.message || "Gagal menghapus data. " + err.message;
         showErrorToast(msg);
       }
     }
   };
 
-  if (loading) {
-    return (
-      <div className="text-center p-8">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
-      
       {/* HEADER DENGAN SEARCH BAR */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <h1 className="text-3xl font-semibold">Manajemen Data Penduduk</h1>
@@ -173,7 +231,7 @@ export default function DataPenduduk() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               placeholder="Cari Nama / NIK..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
             />
           </div>
 
@@ -188,12 +246,14 @@ export default function DataPenduduk() {
 
       {error && !isModalOpen && (
         <div className="alert alert-error shadow-lg mb-4">
-          <div><span>{error}</span></div>
+          <div>
+            <span>{error}</span>
+          </div>
         </div>
       )}
 
       {/* TABLE */}
-      <div className="overflow-x-auto shadow-md rounded-lg">
+      <div className="overflow-x-auto shadow-md rounded-lg bg-white">
         <table className="w-full border-collapse overflow-hidden rounded-lg">
           <thead className="bg-blue-600 text-white">
             <tr>
@@ -208,32 +268,40 @@ export default function DataPenduduk() {
           </thead>
 
           <tbody>
-            {filteredPenduduk.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan="6" className="text-center p-8 text-gray-500 bg-white">
-                  {searchTerm 
-                    ? `Data "${searchTerm}" tidak ditemukan.` 
+                <td colSpan="7" className="text-center p-8">
+                  <span className="loading loading-spinner loading-lg text-blue-500"></span>
+                </td>
+              </tr>
+            ) : pendudukList.length === 0 ? (
+              <tr>
+                <td
+                  colSpan="7"
+                  className="text-center p-8 text-gray-500 bg-white"
+                >
+                  {searchTerm
+                    ? `Data "${searchTerm}" tidak ditemukan.`
                     : "Belum ada data penduduk. Silakan tambah data baru."}
                 </td>
               </tr>
             ) : (
-              filteredPenduduk.map((penduduk, index) => (
+              pendudukList.map((penduduk, index) => (
                 <tr
                   key={penduduk.id_penduduk || penduduk.id}
                   className="border-b bg-white text-gray-700 hover:bg-gray-50"
                 >
-                  <td className="p-3 text-center">{index + 1}</td>
-                  <td className="p-3 text-left">{penduduk.nama}</td>
+                  {/* Hitung nomor urut berdasarkan halaman */}
+                  <td className="p-3 text-center">{pagination.from + index}</td>
+                  <td className="p-3 text-left font-medium">{penduduk.nama}</td>
                   <td className="p-3 text-left">{penduduk.nik}</td>
                   <td className="p-3 text-left">
-                    {penduduk.kk ? penduduk.kk.no_kk : '-'}
+                    {penduduk.kk ? penduduk.kk.no_kk : "-"}
                   </td>
                   <td className="p-3 truncate max-w-xs" title={penduduk.alamat}>
                     {penduduk.alamat}
                   </td>
-                  <td className="p-3 text-center">
-                    {penduduk.jenis_kelamin}
-                  </td>
+                  <td className="p-3 text-center">{penduduk.jenis_kelamin}</td>
 
                   <td className="p-3 flex justify-center gap-2">
                     <button
@@ -244,7 +312,9 @@ export default function DataPenduduk() {
                     </button>
 
                     <button
-                      onClick={() => handleDelete(penduduk.id_penduduk || penduduk.id)}
+                      onClick={() =>
+                        handleDelete(penduduk.id_penduduk || penduduk.id)
+                      }
                       className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm flex items-center gap-1"
                     >
                       <FaTrash /> Hapus
@@ -257,14 +327,45 @@ export default function DataPenduduk() {
         </table>
       </div>
 
+      {/* PAGINATION CONTROL - MINIMALIST */}
+      {!loading && pendudukList.length > 0 && (
+        <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+          {/* Info text */}
+          <div className="text-xs text-gray-400 uppercase font-bold tracking-wider">
+            Data {pagination.from}-{pagination.to} / {pagination.total}
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-full border border-gray-200">
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:shadow-none disabled:bg-transparent disabled:text-gray-300"
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+            >
+              <FaChevronLeft size={12} />
+            </button>
+
+            <span className="px-3 text-sm font-semibold text-gray-600">
+              {currentPage}
+            </span>
+
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all disabled:shadow-none disabled:bg-transparent disabled:text-gray-300"
+              disabled={currentPage === pagination.last_page}
+              onClick={() => handlePageChange(currentPage + 1)}
+            >
+              <FaChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ==================== MODAL MANUAL ==================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          
           <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-fade-in-up">
-            
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold"
               onClick={resetFormAndClose}
             >
@@ -273,14 +374,17 @@ export default function DataPenduduk() {
 
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-bold text-gray-800">
-                {currentPendudukId ? "Edit Data Penduduk" : "Tambah Data Penduduk Baru"}
+                {currentPendudukId
+                  ? "Edit Data Penduduk"
+                  : "Tambah Data Penduduk Baru"}
               </h2>
-              <p className="text-gray-500 text-sm mt-1">Pastikan data sesuai KTP/KK.</p>
+              <p className="text-gray-500 text-sm mt-1">
+                Pastikan data sesuai KTP/KK.
+              </p>
             </div>
 
             {/* FORM */}
             <form onSubmit={handleSubmit} className="space-y-5">
-              
               <SelectKK
                 kkList={kkList}
                 value={formData.id_kk}
@@ -305,7 +409,7 @@ export default function DataPenduduk() {
                   type="number"
                   required
                 />
-                
+
                 <SelectGender
                   value={formData.jenis_kelamin}
                   handle={handleInputChange}
@@ -340,7 +444,9 @@ export default function DataPenduduk() {
               />
 
               <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <p className="text-xs text-blue-800 font-semibold mb-2">Akun Login (Opsional)</p>
+                <p className="text-xs text-blue-800 font-semibold mb-2">
+                  Akun Login (Opsional)
+                </p>
                 <Input
                   label="Email (Untuk login warga)"
                   name="email"
@@ -366,7 +472,8 @@ function SelectKK({ kkList, value, handle, required = false }) {
   return (
     <div className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        Pilih Kartu Keluarga (KK) {required && <span className="text-red-500">*</span>}
+        Pilih Kartu Keluarga (KK){" "}
+        {required && <span className="text-red-500">*</span>}
       </label>
       <select
         name="id_kk"
@@ -383,14 +490,22 @@ function SelectKK({ kkList, value, handle, required = false }) {
             </option>
           ))
         ) : (
-          <option disabled>Data KK Kosong (Input KK dulu)</option>
+          <option disabled>Data KK Kosong / Gagal Memuat</option>
         )}
       </select>
     </div>
   );
 }
 
-function Input({ label, name, value, handle, type = "text", required = false, placeholder = "" }) {
+function Input({
+  label,
+  name,
+  value,
+  handle,
+  type = "text",
+  required = false,
+  placeholder = "",
+}) {
   return (
     <div className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -464,7 +579,11 @@ function FormButtons({ close, loading }) {
         className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 shadow-md transition-all hover:scale-[1.02]"
         disabled={loading}
       >
-        {loading ? <span className="loading loading-spinner loading-sm"></span> : "Simpan Data"}
+        {loading ? (
+          <span className="loading loading-spinner loading-sm"></span>
+        ) : (
+          "Simpan Data"
+        )}
       </button>
     </div>
   );

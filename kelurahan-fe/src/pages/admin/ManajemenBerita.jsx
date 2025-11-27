@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 // Lokasi file: src/pages/admin/ManajemenBerita.jsx
-// (FIXED: Error Handling 422 Lebih Detail & Tombol Hapus Jelas)
+// (REVISI FINAL: Upload Gambar Lancar & Error 405 Teratasi)
 
 import { useState, useEffect } from "react";
-import { FaTrash, FaPlus, FaNewspaper, FaSearch } from "react-icons/fa";
+import { FaTrash, FaPlus, FaNewspaper, FaSearch, FaEdit } from "react-icons/fa"; 
 import api from "../../services/api";
 import { showSuccessToast, showErrorToast, showDeleteConfirmation } from "../../utils/sweetalert";
 
@@ -12,11 +12,11 @@ const STORAGE_URL = 'http://127.0.0.1:8000/storage/';
 export default function ManajemenBerita() {
   const [beritaList, setBeritaList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   // State Modal & Form
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentBeritaId, setCurrentBeritaId] = useState(null);
   const [formData, setFormData] = useState({ judul: "", isi: "" });
   const [gambarFile, setGambarFile] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -52,27 +52,78 @@ export default function ManajemenBerita() {
   const resetFormAndClose = () => {
     setFormData({ judul: "", isi: "" });
     setGambarFile(null);
+    setCurrentBeritaId(null);
     setIsModalOpen(false);
+  };
+
+  const handleOpenModal = (berita = null) => {
+    if (berita) {
+      setFormData({
+        judul: berita.judul,
+        isi: berita.isi,
+      });
+      setCurrentBeritaId(berita.id_berita);
+    } else {
+      setFormData({ judul: "", isi: "" });
+      setCurrentBeritaId(null);
+    }
+    setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitLoading(true);
-    setError(null);
 
     const data = new FormData();
     data.append("judul", formData.judul);
     data.append("isi", formData.isi);
-    if (gambarFile) data.append("gambar", gambarFile);
+    
+    // Append gambar hanya jika ada file baru
+    if (gambarFile) {
+      data.append("gambar", gambarFile);
+    }
+
+    // Config khusus untuk upload file
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    };
 
     try {
-      await api.post("/berita", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      if (currentBeritaId) {
+        // --- UPDATE (EDIT) ---
+        // Gunakan method spoofing untuk Laravel
+        data.append("_method", "PUT"); 
+        
+        // Perhatikan penambahan 'config' di argumen ketiga
+        await api.post(`/berita/${currentBeritaId}`, data, config); 
+        
+        showSuccessToast("Berita berhasil diperbarui!");
+      } else {
+        // --- CREATE (TAMBAH) ---
+        // Perhatikan penambahan 'config' di argumen ketiga
+        await api.post("/berita", data, config);
+        
+        showSuccessToast("Berita berhasil diposting!");
+      }
+
       fetchBerita();
       resetFormAndClose();
     } catch (err) {
-      setError("Gagal memposting berita. " + err.message);
+      console.error("Error Detail:", err.response); // Debugging di console
+      
+      if (err.response && err.response.data && err.response.data.errors) {
+        // Ambil pesan error pertama dari validasi Laravel
+        const errors = err.response.data.errors;
+        const firstErrorKey = Object.keys(errors)[0]; // Misal: 'judul' atau 'gambar'
+        const firstErrorMessage = errors[firstErrorKey][0];
+        showErrorToast(firstErrorMessage); 
+      } else if (err.response && err.response.data && err.response.data.message) {
+        showErrorToast(err.response.data.message);
+      } else {
+        showErrorToast("Gagal menyimpan berita. Pastikan ukuran gambar di bawah 2MB.");
+      }
     } finally {
       setSubmitLoading(false);
     }
@@ -95,6 +146,7 @@ export default function ManajemenBerita() {
 
   return (
     <div className="p-6">
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <h1 className="text-3xl font-semibold">Manajemen Berita</h1>
         <div className="flex w-full md:w-auto gap-3 items-center">
@@ -102,15 +154,18 @@ export default function ManajemenBerita() {
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FaSearch className="text-gray-400" /></div>
             <input type="text" className="w-full pl-10 pr-4 py-2 border rounded-lg" placeholder="Cari Judul..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap">
+          <button onClick={() => handleOpenModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap">
             <FaPlus size={14} /> Posting Berita
           </button>
         </div>
       </div>
 
+      {/* CARD LIST */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBerita.length === 0 ? (
-          <div className="col-span-full text-center py-10 bg-white rounded-lg shadow text-gray-500 border border-dashed">Belum ada berita.</div>
+          <div className="col-span-full text-center py-10 bg-white rounded-lg shadow text-gray-500 border border-dashed">
+            {searchTerm ? "Berita tidak ditemukan." : "Belum ada berita yang diposting."}
+          </div>
         ) : (
           filteredBerita.map((berita) => (
             <div key={berita.id_berita} className="card bg-white shadow-md border hover:shadow-xl transition-all flex flex-col h-full">
@@ -126,13 +181,18 @@ export default function ManajemenBerita() {
                 <p className="text-xs text-gray-400 mb-2">{new Date(berita.created_at).toLocaleDateString("id-ID")}</p>
                 <p className="text-sm text-gray-600 line-clamp-3">{berita.isi}</p>
                 
-                {/* TOMBOL HAPUS DIPINDAH KESINI AGAR JELAS */}
-                <div className="card-actions justify-end mt-4 pt-4 border-t">
+                <div className="card-actions justify-end mt-4 pt-4 border-t flex gap-2">
+                  <button 
+                    onClick={() => handleOpenModal(berita)} 
+                    className="btn btn-sm btn-outline btn-warning flex items-center gap-2"
+                  >
+                    <FaEdit /> Edit
+                  </button>
                   <button 
                     onClick={() => handleDelete(berita.id_berita)} 
                     className="btn btn-sm btn-outline btn-error flex items-center gap-2"
                   >
-                    <FaTrash /> Hapus Berita
+                    <FaTrash /> Hapus
                   </button>
                 </div>
               </div>
@@ -141,18 +201,22 @@ export default function ManajemenBerita() {
         )}
       </div>
 
+      {/* MODAL FORM */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl p-6 relative animate-fade-in-up">
             
-            <button onClick={resetFormAndClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            <button onClick={resetFormAndClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
             
-            <h2 className="text-2xl font-bold mb-1 text-center text-gray-800">Buat Pengumuman</h2>
-            <p className="text-center text-gray-500 text-sm mb-6">Bagikan informasi terbaru kepada warga.</p>
+            <h2 className="text-2xl font-bold mb-1 text-center text-gray-800">
+              {currentBeritaId ? "Edit Berita" : "Buat Pengumuman"}
+            </h2>
+            <p className="text-center text-gray-500 text-sm mb-6">
+              {currentBeritaId ? "Perbarui informasi berita." : "Bagikan informasi terbaru kepada warga."}
+            </p>
             
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* Input Judul */}
               <div>
                 <label className="block font-medium mb-1 text-gray-700">Judul Berita</label>
                 <input 
@@ -165,7 +229,6 @@ export default function ManajemenBerita() {
                 />
               </div>
 
-              {/* Input Isi */}
               <div>
                 <label className="block font-medium mb-1 text-gray-700">Isi Berita</label>
                 <textarea 
@@ -178,9 +241,10 @@ export default function ManajemenBerita() {
                 ></textarea>
               </div>
 
-              {/* Input Gambar (Dipercantik) */}
               <div>
-                <label className="block font-medium mb-1 text-gray-700">Gambar Utama (Opsional)</label>
+                <label className="block font-medium mb-1 text-gray-700">
+                  {currentBeritaId ? "Ganti Gambar (Opsional)" : "Gambar Utama (Opsional)"}
+                </label>
                 <input 
                   type="file" 
                   onChange={handleFileChange} 
@@ -190,7 +254,6 @@ export default function ManajemenBerita() {
                 <span className="text-xs text-gray-400 mt-1 block">Format: JPG, PNG (Max 2MB)</span>
               </div>
 
-              {/* Tombol Aksi (Diperbaiki Layoutnya) */}
               <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
                 <button 
                   type="button" 
@@ -204,7 +267,7 @@ export default function ManajemenBerita() {
                   className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md transition-all flex items-center gap-2" 
                   disabled={submitLoading}
                 >
-                  {submitLoading ? <span className="loading loading-spinner loading-sm"></span> : "Posting Berita"}
+                  {submitLoading ? <span className="loading loading-spinner loading-sm"></span> : (currentBeritaId ? "Simpan Perubahan" : "Posting Berita")}
                 </button>
               </div>
 

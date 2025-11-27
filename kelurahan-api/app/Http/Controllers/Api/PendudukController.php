@@ -18,10 +18,9 @@ class PendudukController extends Controller
 {
     public function index(Request $request)
     {
-        // Mulai Query
         $query = Penduduk::with('kk');
 
-        // 1. Cek apakah ada pencarian?
+        // Logika Pencarian
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -30,9 +29,15 @@ class PendudukController extends Controller
             });
         }
 
-        // 2. Ambil data dengan Pagination (10 per halaman)
-        // Otomatis menghandle ?page=1, ?page=2 dst dari frontend
-        $penduduk = $query->orderBy('nama', 'asc')->paginate(10);
+        // --- PERBAIKAN DISINI ---
+        // Jika ada parameter ?limit=all, ambil semua data (get)
+        // Jika tidak, gunakan pagination (paginate)
+        if ($request->has('limit') && $request->limit == 'all') {
+            $penduduk = $query->orderBy('nama', 'asc')->get();
+        } else {
+            $penduduk = $query->orderBy('nama', 'asc')->paginate(10);
+        }
+        // ------------------------
 
         return response()->json([
             'success' => true,
