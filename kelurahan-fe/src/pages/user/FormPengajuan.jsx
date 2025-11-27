@@ -1,7 +1,10 @@
+/* eslint-disable no-unused-vars */
 // Lokasi file: src/pages/user/FormPengajuan.jsx
 import { useState, useEffect } from 'react';
 import api from '../../services/api'; 
 import { FaPaperPlane, FaFileUpload } from 'react-icons/fa';
+// Import SweetAlert Helper
+import { showSuccessToast, showErrorToast } from "../../utils/sweetalert";
 
 export default function FormPengajuan() {
   const [layananList, setLayananList] = useState([]); 
@@ -11,8 +14,6 @@ export default function FormPengajuan() {
 
   const [loading, setLoading] = useState(true); 
   const [submitLoading, setSubmitLoading] = useState(false); 
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,9 +21,8 @@ export default function FormPengajuan() {
         setLoading(true);
         const response = await api.get('/jenis-layanan'); 
         setLayananList(response.data.data || []); 
-      // eslint-disable-next-line no-unused-vars
       } catch (err) {
-        setError("Gagal mengambil layanan.");
+        showErrorToast("Gagal mengambil layanan.");
       } finally {
         setLoading(false);
       }
@@ -36,11 +36,8 @@ export default function FormPengajuan() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
     setSubmitLoading(true);
 
-    // Gunakan FormData untuk kirim file
     const formData = new FormData();
     formData.append('id_jenis_layanan', idJenisLayanan);
     formData.append('keterangan', keterangan);
@@ -49,39 +46,38 @@ export default function FormPengajuan() {
     }
 
     try {
-      // Header 'multipart/form-data' otomatis dihandle axios saat pakai FormData
       await api.post('/pengajuan-layanan', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       
-      setSuccess('Pengajuan berhasil dikirim!');
+      // Ganti success state dengan SweetAlert
+      showSuccessToast('Pengajuan berhasil dikirim!');
+      
+      // Reset Form
       setIdJenisLayanan('');
       setKeterangan('');
       setFilePersyaratan(null);
-      // Reset input file visual
       document.getElementById('fileInput').value = "";
 
     } catch (err) {
       if (err.response?.data?.errors) {
-        setError(Object.values(err.response.data.errors)[0][0]);
+        const msg = Object.values(err.response.data.errors)[0][0];
+        showErrorToast(msg);
       } else {
-        setError("Gagal mengirim pengajuan. " + err.message);
+        showErrorToast("Gagal mengirim pengajuan. " + err.message);
       }
     } finally {
       setSubmitLoading(false);
     }
   };
   
-  if (loading) return <div className="text-center p-8"><span className="loading loading-spinner"></span></div>;
+  if (loading) return <div className="text-center p-8"><span className="loading loading-spinner loading-lg"></span></div>;
 
   return (
     <div className="p-0">
       <h1 className="text-3xl font-semibold mb-6">Buat Pengajuan Surat</h1>
-
-      {error && <div className="alert alert-error shadow-lg mb-4"><span>{error}</span></div>}
-      {success && <div className="alert alert-success shadow-lg mb-4"><span>{success}</span></div>}
 
       <div className="bg-white p-6 shadow-md rounded-lg">
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -140,11 +136,10 @@ export default function FormPengajuan() {
           <div className="flex justify-end mt-6">
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-md"
               disabled={submitLoading}
             >
-              {submitLoading ? <span className="loading loading-spinner loading-sm"></span> : <FaPaperPlane />}
-              Kirim Pengajuan
+              {submitLoading ? <span className="loading loading-spinner loading-sm"></span> : <><FaPaperPlane /> Kirim Pengajuan</>}
             </button>
           </div>
         </form>

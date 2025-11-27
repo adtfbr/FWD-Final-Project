@@ -16,13 +16,28 @@ use Illuminate\Support\Facades\Log; // Tambahkan ini untuk Logging error
 
 class PendudukController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $penduduk = Penduduk::with('kk')->orderBy('nama', 'asc')->get();
+        // Mulai Query
+        $query = Penduduk::with('kk');
+
+        // 1. Cek apakah ada pencarian?
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('nik', 'like', "%{$search}%");
+            });
+        }
+
+        // 2. Ambil data dengan Pagination (10 per halaman)
+        // Otomatis menghandle ?page=1, ?page=2 dst dari frontend
+        $penduduk = $query->orderBy('nama', 'asc')->paginate(10);
+
         return response()->json([
             'success' => true,
             'message' => 'Daftar data penduduk berhasil diambil.',
-            'data' => $penduduk
+            'data'    => $penduduk
         ], 200);
     }
 
@@ -100,46 +115,84 @@ class PendudukController extends Controller
 
     public function update(Request $request, string $id)
     {
+        // Mulai Transaksi Database agar aman
+        DB::beginTransaction();
+
         try {
             $penduduk = Penduduk::findOrFail($id);
+
+            // 1. Simpan NIK lama sebelum di-update untuk pengecekan nanti
+            $oldNik = $penduduk->nik;
+
+            $validator = Validator::make($request->all(), [
+                'id_kk' => 'required|integer|exists:kks,id_kk',
+                'nik' => [
+                    'required',
+                    'string',
+                    'size:16',
+                    Rule::unique('penduduks')->ignore($id, 'id_penduduk')
+                ],
+                'nama' => 'required|string|max:255',
+                'tanggal_lahir' => 'required|date',
+                'jenis_kelamin' => 'required|in:L,P',
+                'alamat' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // 2. Update Data Penduduk
+            $penduduk->update($request->only([
+                 'id_kk', 'nik', 'nama', 'tanggal_lahir', 'jenis_kelamin', 'alamat'
+            ]));
+
+            // 3. Cek Sinkronisasi dengan Data KK
+            // Ambil data KK yang terhubung
+            $kk = $penduduk->kk;
+
+            // Jika KK ditemukan DAN NIK lama penduduk ini sama dengan NIK Kepala Keluarga di tabel KK
+            if ($kk && $kk->nik_kepala_keluarga === $oldNik) {
+                // Maka update juga data di tabel KK agar sinkron
+                $kk->update([
+                    'nama_kepala_keluarga' => $penduduk->nama,
+                    'nik_kepala_keluarga'  => $penduduk->nik // Update NIK juga jaga-jaga kalau NIK-nya diedit
+                ]);
+            }
+
+            // Jika ada user login yang terhubung, update juga namanya
+            // (Opsional: agar nama di dashboard/profil langsung berubah)
+            $user = User::where('id_penduduk', $id)->first();
+            if ($user) {
+                $user->update(['name' => $penduduk->nama]);
+            }
+
+            DB::commit(); // Simpan semua perubahan
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data penduduk berhasil diperbarui (Data KK sinkron).',
+                'data' => $penduduk
+            ], 200);
+
         } catch (ModelNotFoundException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Data penduduk tidak ditemukan.'
             ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'id_kk' => 'required|integer|exists:kks,id_kk',
-            'nik' => [
-                'required',
-                'string',
-                'size:16',
-                Rule::unique('penduduks')->ignore($id, 'id_penduduk')
-            ],
-            'nama' => 'required|string|max:255',
-            'tanggal_lahir' => 'required|date',
-            'jenis_kelamin' => 'required|in:L,P',
-            'alamat' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal update penduduk: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Validasi gagal.',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Terjadi kesalahan server.'
+            ], 500);
         }
-
-        $penduduk->update($request->only([
-             'id_kk', 'nik', 'nama', 'tanggal_lahir', 'jenis_kelamin', 'alamat'
-        ]));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data penduduk berhasil diperbarui.',
-            'data' => $penduduk
-        ], 200);
     }
 
     /**

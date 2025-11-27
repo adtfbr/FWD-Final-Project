@@ -45,7 +45,7 @@ export default function AdminLayout() {
 
         <div className="border-b border-white/20 mb-6"></div>
 
-        <ul className="menu space-y-2">
+        <ul className="menu space-y-2 flex-1">
           <NavItem to="/admin/dashboard" icon={<FaTachometerAlt />}>Dashboard</NavItem>
           <NavItem to="/admin/penduduk" icon={<FaUsers />}>Data Penduduk</NavItem>
           <NavItem to="/admin/kk" icon={<FaIdCard />}>Data KK</NavItem>
@@ -56,12 +56,16 @@ export default function AdminLayout() {
           <NavItem to="/admin/laporan" icon={<FaChartBar />}>Laporan</NavItem>
         </ul>
 
-        <button
-          onClick={logout}
-          className="btn btn-error btn-sm w-full mt-auto rounded-xl font-semibold shadow-md"
-        >
-          <FaSignOutAlt /> Logout
-        </button>
+        <div className="pt-6 mt-auto border-t border-white/20">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 p-3 rounded-xl text-[15px] text-white/90 hover:bg-red-500/90 hover:text-white hover:shadow-md transition-all duration-200 group"
+          >
+            {/* Icon akan sedikit bergoyang saat hover */}
+            <FaSignOutAlt className="group-hover:-translate-x-1 transition-transform" />
+            <span>Logout</span>
+          </button>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col overflow-y-auto">

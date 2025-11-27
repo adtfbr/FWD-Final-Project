@@ -61,7 +61,7 @@ export default function UserLayout() {
         <div className="border-b border-white/20 mb-6"></div>
 
         {/* MENU NAVIGASI */}
-        <ul className="menu space-y-2">
+        <ul className="menu space-y-2 flex-1">
           <NavItem to="/" icon={<FaHome />}>Home</NavItem>
 
           <NavItem to="/profil" icon={<FaUserCircle />}>
@@ -77,13 +77,17 @@ export default function UserLayout() {
           </NavItem>
         </ul>
 
-        {/* LOGOUT BUTTON */}
-        <button
-          onClick={logout}
-          className="btn btn-error btn-sm w-full mt-auto rounded-xl font-semibold shadow-md"
-        >
-          <FaSignOutAlt /> Logout
-        </button>
+        {/* LOGOUT BUTTON (Fixed Bottom) */}
+        <div className="pt-6 mt-auto border-t border-white/20">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 p-3 rounded-xl text-[15px] text-white/90 hover:bg-red-500/90 hover:text-white hover:shadow-md transition-all duration-200 group"
+          >
+            {/* Icon akan sedikit bergoyang saat hover */}
+            <FaSignOutAlt className="group-hover:-translate-x-1 transition-transform" />
+            <span>Logout</span>
+          </button>
+        </div>
       </aside>
 
       {/* =============================================================== */}

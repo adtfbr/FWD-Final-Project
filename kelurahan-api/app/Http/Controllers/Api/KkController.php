@@ -12,13 +12,27 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class KkController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $kks = Kk::withCount('penduduks')->orderBy('no_kk', 'asc')->get();
+        // Mulai Query dengan hitungan jumlah penduduk
+        $query = Kk::withCount('penduduks');
+
+        // 1. Fitur Pencarian
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama_kepala_keluarga', 'like', "%{$search}%")
+                  ->orWhere('no_kk', 'like', "%{$search}%");
+            });
+        }
+
+        // 2. Pagination (10 per halaman)
+        $kks = $query->orderBy('no_kk', 'asc')->paginate(10);
+
         return response()->json([
             'success' => true,
             'message' => 'Daftar data KK berhasil diambil.',
-            'data' => $kks
+            'data'    => $kks
         ], 200);
     }
 
