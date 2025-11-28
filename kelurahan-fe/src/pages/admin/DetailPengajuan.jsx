@@ -1,8 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-// Lokasi file: src/pages/admin/DetailPengajuan.jsx
-// (VERSI FINAL FIX: Direct Link Download + SweetAlert)
-
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
@@ -15,12 +12,11 @@ import {
   FaDownload, 
   FaTimes,
   FaFileUpload,
-  FaExternalLinkAlt // Icon baru untuk indikator link keluar
+  FaExternalLinkAlt 
 } from 'react-icons/fa';
 import Swal from 'sweetalert2'; 
 import { showSuccessToast, showErrorToast } from "../../utils/sweetalert";
 
-// Pastikan URL ini sesuai backend kamu
 const STORAGE_URL = 'http://127.0.0.1:8000/storage/';
 
 export default function DetailPengajuan() {
@@ -29,7 +25,6 @@ export default function DetailPengajuan() {
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [adminFile, setAdminFile] = useState(null);
-  // State 'downloading' dihapus karena kita pakai direct link browser
 
   const fetchData = async () => {
     try {
@@ -45,68 +40,6 @@ export default function DetailPengajuan() {
 
   useEffect(() => { fetchData(); }, [id]);
 
-  // --- KOMPONEN FILE VIEWER (MODIFIKASI: DIRECT LINK) ---
-  const FileViewer = ({ label, filePath }) => {
-    if (!filePath) return (
-      <div className="p-4 rounded border border-dashed border-gray-300 text-gray-400 text-sm bg-gray-50">
-        Tidak ada file {label.toLowerCase()}.
-      </div>
-    );
-    
-    // Buat URL lengkap
-    const fullUrl = `${STORAGE_URL}${filePath}`;
-    const isImage = filePath.match(/\.(jpeg|jpg|gif|png)$/i);
-
-    return (
-      <div className="mt-3">
-        <p className="text-sm font-semibold text-gray-700 mb-2">{label}</p>
-        <div className="p-3 rounded-lg border bg-white shadow-sm">
-          {isImage ? (
-            <div className="relative group">
-                <img 
-                  src={fullUrl} 
-                  alt={label} 
-                  className="max-w-full h-auto max-h-64 rounded object-contain mx-auto border" 
-                />
-                {/* Ganti Button dengan Tag A (Direct Link) */}
-                <a 
-                    href={fullUrl}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-md hover:bg-white text-gray-700 hover:text-blue-600 transition-colors"
-                    title="Buka / Download Gambar"
-                >
-                    <FaDownload />
-                </a>
-                
-                {/* Tombol Overlay "Klik untuk memperbesar" */}
-                <a 
-                  href={fullUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 .opacity-0 group-hover:opacity-100 transition-opacity text-white font-medium rounded opacity-0"
-                >
-                  <FaExternalLinkAlt className="mr-2"/> Lihat Full Size
-                </a>
-            </div>
-          ) : (
-            // Ganti Button dengan Tag A (Direct Link untuk Dokumen)
-            <a 
-                href={fullUrl}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 w-full bg-blue-50 rounded border border-blue-100 hover:bg-blue-100 text-blue-700 transition-colors text-left group"
-            >
-                <FaFileAlt className="text-2xl group-hover:scale-110 transition-transform" />
-                <span className="font-medium underline">Buka / Download Dokumen (PDF)</span>
-            </a>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // --- SWEETALERT CUSTOM (TETAP DIPERTAHANKAN) ---
   const confirmAndUpdate = async (newStatus) => {
     let confirmTitle = "Konfirmasi";
     let confirmText = `Ubah status menjadi "${newStatus}"?`;
@@ -173,18 +106,6 @@ export default function DetailPengajuan() {
     }
   };
 
-  // --- Helper Visual Status ---
-  const VisualStatusDisplay = ({ status }) => {
-    let icon, color, text;
-    switch (status) {
-        case 'Diproses': icon = <FaCogs className="text-5xl text-blue-500 animate-spin" />; color = 'bg-blue-50 border-blue-200'; text = 'Pengajuan ini sedang diproses oleh petugas.'; break;
-        case 'Selesai': icon = <FaCheckCircle className="text-5xl text-green-500" />; color = 'bg-green-50 border-green-200'; text = 'Pengajuan telah disetujui dan selesai.'; break;
-        case 'Ditolak': icon = <FaTimesCircle className="text-5xl text-red-500" />; color = 'bg-red-50 border-red-200'; text = 'Pengajuan ini telah ditolak.'; break;
-        default: icon = <FaFileAlt className="text-5xl text-yellow-500" />; color = 'bg-yellow-50 border-yellow-200'; text = 'Menunggu validasi dan persetujuan petugas.';
-    }
-    return <div className={`p-6 rounded-lg border-t-4 ${color} flex items-center gap-4 shadow-sm`}><div className="shrink-0">{icon}</div><div><h3 className="text-lg font-bold text-gray-800">Status: {status}</h3><p className="text-gray-600 text-sm">{text}</p></div></div>;
-  };
-
   if (loading) return <div className="text-center p-8"><span className="loading loading-spinner loading-lg"></span></div>;
   if (!submission) return <div className="alert alert-warning">Data pengajuan tidak ditemukan.</div>;
 
@@ -199,7 +120,6 @@ export default function DetailPengajuan() {
       <h1 className="text-3xl font-semibold mb-6 text-gray-800">Detail Pengajuan Surat</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Kiri: Info */}
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white p-6 shadow-md rounded-lg border border-gray-100">
             <h2 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Informasi Pengajuan</h2>
@@ -229,7 +149,6 @@ export default function DetailPengajuan() {
           )}
         </div>
 
-        {/* Kanan: Aksi */}
         <div className="space-y-6">
           <div className="bg-white p-6 shadow-md rounded-lg border border-gray-100">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Data Pengaju</h2>
@@ -248,7 +167,6 @@ export default function DetailPengajuan() {
             
             {!isFinalStatus ? (
               <div className="space-y-4">
-                {/* Tombol Proses */}
                 {status === 'Diajukan' && (
                   <button 
                     className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-bold shadow-md transition-all hover:scale-[1.02]" 
@@ -259,10 +177,9 @@ export default function DetailPengajuan() {
                   </button>
                 )}
 
-                {/* Form Upload & Selesai */}
                 {status === 'Diproses' && (
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <label className="block text-sm font-bold text-blue-800 mb-2 .flex items-center gap-2">
+                    <label className="block text-sm font-bold text-blue-800 mb-2 items-center gap-2">
                         <FaFileUpload /> Upload Surat Hasil
                     </label>
                     <input 
@@ -282,7 +199,6 @@ export default function DetailPengajuan() {
                   </div>
                 )}
 
-                {/* Tombol Tolak */}
                 <button 
                     className="w-full px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50 flex items-center justify-center gap-2 font-medium transition-colors mt-2" 
                     onClick={() => confirmAndUpdate('Ditolak')} 
@@ -302,3 +218,69 @@ export default function DetailPengajuan() {
     </div>
   );
 }
+
+const FileViewer = ({ label, filePath }) => {
+  if (!filePath) return (
+    <div className="p-4 rounded border border-dashed border-gray-300 text-gray-400 text-sm bg-gray-50">
+      Tidak ada file {label.toLowerCase()}.
+    </div>
+  );
+  
+  const fullUrl = `${STORAGE_URL}${filePath}`;
+  const isImage = filePath.match(/\.(jpeg|jpg|gif|png)$/i);
+
+  return (
+    <div className="mt-3">
+      <p className="text-sm font-semibold text-gray-700 mb-2">{label}</p>
+      <div className="p-3 rounded-lg border bg-white shadow-sm">
+        {isImage ? (
+          <div className="relative group">
+              <img 
+                src={fullUrl} 
+                alt={label} 
+                className="max-w-full h-auto max-h-64 rounded object-contain mx-auto border" 
+              />
+              <a 
+                  href={fullUrl}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-md hover:bg-white text-gray-700 hover:text-blue-600 transition-colors"
+                  title="Buka / Download Gambar"
+              >
+                  <FaDownload />
+              </a>
+              <a 
+                href={fullUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity text-white font-medium rounded"
+              >
+                <FaExternalLinkAlt className="mr-2"/> Lihat Full Size
+              </a>
+          </div>
+        ) : (
+          <a 
+              href={fullUrl}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 w-full bg-blue-50 rounded border border-blue-100 hover:bg-blue-100 text-blue-700 transition-colors text-left group"
+          >
+              <FaFileAlt className="text-2xl group-hover:scale-110 transition-transform" />
+              <span className="font-medium underline">Buka / Download Dokumen (PDF)</span>
+          </a>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const VisualStatusDisplay = ({ status }) => {
+  let icon, color, text;
+  switch (status) {
+      case 'Diproses': icon = <FaCogs className="text-5xl text-blue-500 animate-spin" />; color = 'bg-blue-50 border-blue-200'; text = 'Pengajuan ini sedang diproses oleh petugas.'; break;
+      case 'Selesai': icon = <FaCheckCircle className="text-5xl text-green-500" />; color = 'bg-green-50 border-green-200'; text = 'Pengajuan telah disetujui dan selesai.'; break;
+      case 'Ditolak': icon = <FaTimesCircle className="text-5xl text-red-500" />; color = 'bg-red-50 border-red-200'; text = 'Pengajuan ini telah ditolak.'; break;
+      default: icon = <FaFileAlt className="text-5xl text-yellow-500" />; color = 'bg-yellow-50 border-yellow-200'; text = 'Menunggu validasi dan persetujuan petugas.';
+  }
+  return <div className={`p-6 rounded-lg border-t-4 ${color} flex items-center gap-4 shadow-sm`}><div className="shrink-0">{icon}</div><div><h3 className="text-lg font-bold text-gray-800">Status: {status}</h3><p className="text-gray-600 text-sm">{text}</p></div></div>;
+};

@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('beritas', function (Blueprint $table) {
@@ -17,14 +14,11 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->text('isi');
             $table->string('gambar')->nullable();
-            $table->foreignId('id_petugas')->constrained('petugas', 'id_petugas');
+            $table->foreignId('id_petugas')->constrained('petugas', 'id_petugas')->onDelete('cascade');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('beritas');

@@ -1,10 +1,8 @@
-// Lokasi file: src/pages/user/WargaLogin.jsx
-
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock } from "react-icons/fa";
-import Logo from "../../components/Logo"; // <--- 1. IMPORT LOGO
+import Logo from "../../components/Logo";
 
 const WargaLogin = () => {
   const [email, setEmail] = useState("");
@@ -21,7 +19,7 @@ const WargaLogin = () => {
 
     try {
       await loginWarga(email, password);
-      navigate("/profil"); // Diarahkan ke Home setelah login
+      navigate("/profil");
     } catch (err) {
       if (err.code === "ERR_NETWORK" || err.code === "ERR_CONNECTION_REFUSED") {
         setError("Gagal terhubung ke server. Pastikan backend sudah dijalankan.");
@@ -34,20 +32,14 @@ const WargaLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-blue-100 p-6">
-
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-100 to-blue-200 px-6">
       <div className="bg-white w-full max-w-4xl shadow-2xl rounded-3xl overflow-hidden flex flex-col lg:flex-row border border-white/50">
-
-        {/* SISI KIRI — BRANDING DENGAN LOGO BARU */}
+        
         <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-600 to-blue-800 text-white p-12 flex-col justify-center items-center relative overflow-hidden">
-          
-          {/* Efek Lingkaran Dekorasi */}
           <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl"></div>
 
           <div className="relative z-10 text-center space-y-6">
-            
-            {/* 2. PASANG LOGO (Variant white-bg agar kontras di latar biru) */}
             <div className="transform hover:scale-105 transition-transform duration-500">
                <Logo className="h-40" variant="white-bg" />
             </div>
@@ -67,11 +59,9 @@ const WargaLogin = () => {
           </div>
         </div>
 
-        {/* SISI KANAN — FORM LOGIN */}
         <div className="w-full lg:w-1/2 p-10 flex items-center justify-center bg-white">
           <div className="w-full max-w-md">
             
-            {/* Logo Mobile (Hanya muncul di layar kecil) */}
             <div className="lg:hidden flex justify-center mb-6">
                <Logo className="h-24" />
             </div>
@@ -90,35 +80,23 @@ const WargaLogin = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700 text-sm ml-1">Email</label>
-                <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 transition-all focus-within:bg-white">
-                  <FaEnvelope className="text-gray-400" />
-                  <input
-                    type="email"
-                    className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
-                    placeholder="nama@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+              <LoginInput 
+                label="Email" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="nama@email.com" 
+                icon={<FaEnvelope className="text-gray-400" />} 
+              />
 
-              <div className="space-y-1">
-                <label className="font-semibold text-gray-700 text-sm ml-1">Password</label>
-                <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 transition-all focus-within:bg-white">
-                  <FaLock className="text-gray-400" />
-                  <input
-                    type="password"
-                    className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+              <LoginInput 
+                label="Password" 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="••••••••" 
+                icon={<FaLock className="text-gray-400" />} 
+              />
 
               <button
                 type="submit"
@@ -146,5 +124,22 @@ const WargaLogin = () => {
     </div>
   );
 };
+
+const LoginInput = ({ label, type, value, onChange, placeholder, icon }) => (
+  <div className="space-y-1">
+    <label className="font-semibold text-gray-700 text-sm ml-1">{label}</label>
+    <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 transition-all focus-within:bg-white">
+      {icon}
+      <input
+        type={type}
+        className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        required
+      />
+    </div>
+  </div>
+);
 
 export default WargaLogin;

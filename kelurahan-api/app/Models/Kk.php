@@ -10,6 +10,7 @@ class Kk extends Model
     use HasFactory;
 
     protected $primaryKey = 'id_kk';
+
     protected $fillable = [
         'no_kk',
         'nama_kepala_keluarga',
@@ -26,7 +27,6 @@ class Kk extends Model
         'tanggal_terbit'
     ];
 
-    // Relasi: Satu KK memiliki banyak Penduduk
     public function penduduks()
     {
         return $this->hasMany(Penduduk::class, 'id_kk', 'id_kk');

@@ -11,31 +11,33 @@ class PetugasSeeder extends Seeder
 {
     public function run(): void
     {
-        // Petugas 1
+        // Petugas 1: Super Admin
         $petugas1 = Petugas::create([
-            'nama_petugas' => 'Aditya Febriadi (Admin)',
-            'jabatan'      => 'Kepala Layanan',
+            'nama_petugas' => 'Administrator Sistem',
+            'jabatan'      => 'Kepala Pelayanan',
+            'no_hp'        => '081234567890',
         ]);
 
         User::create([
             'id_petugas' => $petugas1->id_petugas,
             'name'       => $petugas1->nama_petugas,
-            'email'      => 'adit.petugas@kelurahan.com',
+            'email'      => 'admin@nagari.id',
             'password'   => Hash::make('password'),
             'role'       => 'petugas',
             'status'     => 'active',
         ]);
 
-        // Petugas 2
+        // Petugas 2: Staf
         $petugas2 = Petugas::create([
             'nama_petugas' => 'Siti Aminah',
             'jabatan'      => 'Staf Administrasi',
+            'no_hp'        => '089876543210',
         ]);
 
         User::create([
             'id_petugas' => $petugas2->id_petugas,
             'name'       => $petugas2->nama_petugas,
-            'email'      => 'siti.petugas@kelurahan.com',
+            'email'      => 'siti@nagari.id',
             'password'   => Hash::make('password'),
             'role'       => 'petugas',
             'status'     => 'active',

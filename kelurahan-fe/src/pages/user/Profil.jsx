@@ -1,6 +1,3 @@
-// Lokasi file: src/pages/user/Profil.jsx
-// (Halaman Warga untuk F-P2 - Menampilkan data 'GET /api/me')
-
 import React from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
@@ -12,10 +9,9 @@ import {
   FaCalendarAlt,
 } from 'react-icons/fa';
 
-// Komponen helper kecil untuk styling
 const InfoItem = ({ icon, label, value }) => (
   <div className="flex items-start p-3">
-    <div className="flex-shrink- w-8 text-center">
+    <div className="shrink-0 w-8 text-center">
       {React.cloneElement(icon, { className: 'text-blue-600 text-xl' })}
     </div>
     <div className="ml-4">
@@ -36,7 +32,6 @@ export default function Profil() {
       <h1 className="text-3xl font-semibold mb-6">Profil Saya</h1>
 
       <div className="bg-white p-6 shadow-md rounded-lg">
-        {/* Header Profil */}
         <div className="flex flex-col sm:flex-row items-center mb-6 border-b pb-6">
           <FaUser className="text-5xl text-blue-600 p-3 bg-blue-100 rounded-full mb-4 sm:mb-0" />
           <div className="sm:ml-4 text-center sm:text-left">
@@ -47,7 +42,6 @@ export default function Profil() {
           </div>
         </div>
 
-        {/* Detail Info */}
         <h3 className="text-xl font-semibold text-gray-700 mb-4">
           Detail Akun & Kependudukan
         </h3>

@@ -1,6 +1,5 @@
 import Swal from 'sweetalert2';
 
-// Notifikasi Sukses (Pojok Kanan Atas)
 export const showSuccessToast = (message) => {
   Swal.fire({
     icon: 'success',
@@ -13,7 +12,6 @@ export const showSuccessToast = (message) => {
   });
 };
 
-// Notifikasi Error (Pojok Kanan Atas)
 export const showErrorToast = (message) => {
   Swal.fire({
     icon: 'error',
@@ -26,7 +24,6 @@ export const showErrorToast = (message) => {
   });
 };
 
-// Konfirmasi Hapus (Tengah Layar)
 export const showDeleteConfirmation = async (text = "Data yang dihapus tidak dapat dikembalikan!") => {
   return Swal.fire({
     title: 'Apakah Anda yakin?',

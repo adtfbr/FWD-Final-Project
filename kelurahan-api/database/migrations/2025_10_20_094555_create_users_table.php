@@ -6,15 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id('id_user');
-            $table->foreignId('id_penduduk')->nullable()->constrained('penduduks', 'id_penduduk');
-            $table->foreignId('id_petugas')->nullable()->constrained('petugas', 'id_petugas');
+            // Relasi optional ke Penduduk atau Petugas
+            $table->foreignId('id_penduduk')->nullable()->constrained('penduduks', 'id_penduduk')->onDelete('set null');
+            $table->foreignId('id_petugas')->nullable()->constrained('petugas', 'id_petugas')->onDelete('set null');
+
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
@@ -40,9 +39,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');

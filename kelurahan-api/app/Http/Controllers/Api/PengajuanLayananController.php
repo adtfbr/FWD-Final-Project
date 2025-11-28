@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StorePengajuanLayananRequest;
 use Illuminate\Http\Request;
 use App\Models\PengajuanLayanan;
 use Illuminate\Support\Facades\Auth;
@@ -14,17 +13,25 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class PengajuanLayananController extends Controller
 {
-    /**
-     * Store (Digunakan oleh WARGA)
-     * Menggunakan Form Request untuk validasi otomatis
-     */
+    public function index()
+    {
+        $pengajuan = PengajuanLayanan::with(['user.penduduk', 'jenisLayanan'])
+            ->orderBy('tanggal_pengajuan', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar semua pengajuan layanan berhasil diambil.',
+            'data'    => $pengajuan
+        ], 200);
+    }
+
     public function store(Request $request)
     {
-        // Validasi Manual karena kita butuh handle file
         $validator = Validator::make($request->all(), [
             'id_jenis_layanan' => 'required|exists:jenis_layanans,id_jenis_layanan',
             'keterangan'       => 'nullable|string',
-            'file_persyaratan' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048', // Max 2MB
+            'file_persyaratan' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -34,7 +41,6 @@ class PengajuanLayananController extends Controller
         try {
             $path = null;
             if ($request->hasFile('file_persyaratan')) {
-                // Simpan ke folder 'public/persyaratan'
                 $path = $request->file('file_persyaratan')->store('persyaratan', 'public');
             }
 
@@ -62,12 +68,10 @@ class PengajuanLayananController extends Controller
         }
     }
 
-    // Update Status (Admin Upload Hasil Surat)
     public function updateStatus(Request $request, string $id)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:Diproses,Selesai,Ditolak',
-            // Jika status selesai, admin BISA (opsional/wajib) upload file hasil
+            'status'           => 'required|string|in:Diproses,Selesai,Ditolak',
             'file_surat_hasil' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
         ]);
 
@@ -78,13 +82,10 @@ class PengajuanLayananController extends Controller
         try {
             $pengajuan = PengajuanLayanan::findOrFail($id);
 
-            // Update data
             $pengajuan->status = $request->status;
             $pengajuan->id_petugas = Auth::user()->id_petugas;
 
-            // Jika ada file hasil yang diupload admin
             if ($request->hasFile('file_surat_hasil')) {
-                // Hapus file lama jika ada (biar tidak numpuk sampah)
                 if ($pengajuan->file_surat_hasil) {
                     Storage::disk('public')->delete($pengajuan->file_surat_hasil);
                 }
@@ -105,12 +106,9 @@ class PengajuanLayananController extends Controller
         }
     }
 
-    /**
-     * Riwayat (Digunakan oleh WARGA)
-     */
-    public function riwayatSaya()
+    public function riwayatSaya(Request $request)
     {
-        $idUser = Auth::id();
+        $idUser = $request->user()->id_user;
 
         $riwayat = PengajuanLayanan::with('jenisLayanan')
             ->where('id_user', $idUser)
@@ -124,10 +122,7 @@ class PengajuanLayananController extends Controller
         ], 200);
     }
 
-    /**
-     * Index (Digunakan oleh PETUGAS)
-     */
-    public function index()
+    public function indexForPetugas()
     {
         $pengajuan = PengajuanLayanan::with('user.penduduk', 'jenisLayanan')
             ->orderBy('tanggal_pengajuan', 'desc')
@@ -140,9 +135,6 @@ class PengajuanLayananController extends Controller
         ], 200);
     }
 
-    /**
-     * Show (Digunakan oleh PETUGAS)
-     */
     public function show(string $id)
     {
         try {
@@ -166,13 +158,10 @@ class PengajuanLayananController extends Controller
     {
         $path = $request->query('path');
 
-        // Pastikan file ada di storage public
         if (!Storage::disk('public')->exists($path)) {
             return response()->json(['message' => 'File tidak ditemukan.'], 404);
         }
 
-        // Gunakan fungsi download bawaan Laravel (Otomatis set header CORS & Attachment)
         return Storage::disk('public')->download($path);
     }
-
 }

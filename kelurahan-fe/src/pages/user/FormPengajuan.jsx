@@ -1,26 +1,26 @@
 /* eslint-disable no-unused-vars */
-// Lokasi file: src/pages/user/FormPengajuan.jsx
-import { useState, useEffect } from 'react';
-import api from '../../services/api'; 
+import { useState, useEffect, useRef } from 'react';
+import api from '../../services/api';
 import { FaPaperPlane, FaFileUpload } from 'react-icons/fa';
-// Import SweetAlert Helper
 import { showSuccessToast, showErrorToast } from "../../utils/sweetalert";
 
 export default function FormPengajuan() {
-  const [layananList, setLayananList] = useState([]); 
-  const [idJenisLayanan, setIdJenisLayanan] = useState(''); 
-  const [keterangan, setKeterangan] = useState(''); 
+  const [layananList, setLayananList] = useState([]);
+  const [idJenisLayanan, setIdJenisLayanan] = useState('');
+  const [keterangan, setKeterangan] = useState('');
   const [filePersyaratan, setFilePersyaratan] = useState(null);
 
-  const [loading, setLoading] = useState(true); 
-  const [submitLoading, setSubmitLoading] = useState(false); 
+  const [loading, setLoading] = useState(true);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/jenis-layanan'); 
-        setLayananList(response.data.data || []); 
+        const response = await api.get('/jenis-layanan');
+        setLayananList(response.data.data || []);
       } catch (err) {
         showErrorToast("Gagal mengambil layanan.");
       } finally {
@@ -52,14 +52,14 @@ export default function FormPengajuan() {
         },
       });
       
-      // Ganti success state dengan SweetAlert
       showSuccessToast('Pengajuan berhasil dikirim!');
       
-      // Reset Form
       setIdJenisLayanan('');
       setKeterangan('');
       setFilePersyaratan(null);
-      document.getElementById('fileInput').value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
     } catch (err) {
       if (err.response?.data?.errors) {
@@ -101,6 +101,7 @@ export default function FormPengajuan() {
             <label className="block font-medium mb-1">Upload Persyaratan (KTP/Pengantar)</label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50 hover:bg-gray-100 transition">
                 <input 
+                    ref={fileInputRef}
                     id="fileInput"
                     type="file" 
                     onChange={handleFileChange} 
@@ -136,7 +137,7 @@ export default function FormPengajuan() {
           <div className="flex justify-end mt-6">
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-md"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-md transition-all active:scale-95"
               disabled={submitLoading}
             >
               {submitLoading ? <span className="loading loading-spinner loading-sm"></span> : <><FaPaperPlane /> Kirim Pengajuan</>}

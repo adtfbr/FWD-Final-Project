@@ -1,20 +1,14 @@
-// Lokasi file: src/components/WargaRoute.jsx
-// "Satpam" untuk Warga
-
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import UserLayout from '../layouts/UserLayout'; 
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import UserLayout from "../layouts/UserLayout";
 
 const WargaRoute = () => {
-  const { user } = useAuth(); // Cek dari 'otak'
+  const { user } = useAuth();
 
-  // Cek: Apakah user ada DAN rolenya 'warga'?
-  if (user && user.role === 'warga') {
-    // Jika ya, izinkan akses ke layout warga
+  if (user && user.role === "warga") {
     return <UserLayout />;
   }
 
-  // Jika tidak, tendang ke halaman login warga
   return <Navigate to="/login" replace />;
 };
 

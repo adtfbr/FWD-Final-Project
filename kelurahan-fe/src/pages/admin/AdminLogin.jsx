@@ -1,8 +1,8 @@
-// Lokasi file: src/pages/admin/AdminLogin.jsx
-
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import Logo from "../../components/Logo";
+import { FaEnvelope, FaLock } from "react-icons/fa";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -22,92 +22,88 @@ const AdminLogin = () => {
       await loginPetugas(email, password);
       navigate('/admin/dashboard');
     } catch (err) {
-      // --- PERUBAHAN DISINI ---
-      // Cek apakah ini error koneksi (Network Error / Server Mati)
       if (err.code === "ERR_NETWORK" || err.code === "ERR_CONNECTION_REFUSED") {
         setError("Gagal terhubung ke server. Pastikan backend sudah dijalankan.");
-      } 
-      // Cek apakah error dari AuthContext yang kita lempar manual (misal 401/403)
-      else if (err.message) {
+      } else if (err.message) {
         setError(err.message);
-      } 
-      // Fallback error lainnya
-      else {
+      } else {
         setError("Terjadi kesalahan yang tidak diketahui.");
       }
-      // ------------------------
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to- from-blue-100 to-blue-200 px-6">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-100 to-blue-200 px-6">
+      <div className="bg-white w-full max-w-md shadow-2xl rounded-3xl p-10 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-blue-600"></div>
 
-      <div className="bg-white w-full max-w-md shadow-2xl rounded-3xl p-10">
+        <div className="flex justify-center mb-6">
+           <Logo className="h-24 w-auto" />
+        </div>
 
-        {/* Judul */}
-        <h1 className="text-3xl font-bold text-center text-blue-800 mb-1">
-          Admin Panel
+        <h1 className="text-2xl font-bold text-center text-gray-800 mb-1">
+          Portal Petugas
         </h1>
-        <p className="text-center text-gray-600 text-sm mb-6">
-          Login untuk mengakses dashboard petugas.
+        <p className="text-center text-gray-500 text-sm mb-8">
+          Silakan login untuk mengelola data nagari.
         </p>
 
-        {/* Error */}
         {error && (
-          <div className="alert alert-error mb-4 p-3 rounded-xl shadow-sm">
+          <div className="alert alert-error mb-6 p-3 rounded-xl shadow-sm text-sm flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <span>{error}</span>
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
-
-          {/* Email */}
-          <div className="space-y-1">
-            <label className="font-semibold text-gray-700 text-sm">
-              Email
+          <div className="space-y-2">
+            <label className="font-semibold text-gray-700 text-sm ml-1">
+              Email Petugas
             </label>
-            <input
-              type="email"
-              placeholder="email@petugas.id"
-              className="input input-bordered w-full rounded-xl bg-gray-50 text-base py-3 focus:ring-2 focus:ring-blue-400"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="flex items-center gap-3 border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all focus-within:bg-white">
+              <FaEnvelope className="text-gray-400" />
+              <input
+                type="email"
+                placeholder="admin@nagari.id"
+                className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
-          {/* Password */}
-          <div className="space-y-1">
-            <label className="font-semibold text-gray-700 text-sm">
+          <div className="space-y-2">
+            <label className="font-semibold text-gray-700 text-sm ml-1">
               Password
             </label>
-            <input
-              type="password"
-              placeholder="********"
-              className="input input-bordered w-full rounded-xl bg-gray-50 text-base py-3 focus:ring-2 focus:ring-blue-400"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="flex items-center gap-3 border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all focus-within:bg-white">
+              <FaLock className="text-gray-400" />
+              <input
+                type="password"
+                placeholder="••••••••"
+                className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
-          {/* Tombol */}
           <button
             type="submit"
             disabled={loading}
-            className="btn w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md py-3 font-semibold hover:scale-[1.02] transition-all"
+            className="btn w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/30 py-3 font-bold text-base hover:scale-[1.02] active:scale-95 transition-all mt-4 border-none h-auto"
           >
             {loading ? (
-              <span className="loading loading-spinner"></span>
+              <span className="loading loading-spinner loading-md"></span>
             ) : (
-              "Login"
+              "Masuk Dashboard"
             )}
           </button>
         </form>
-
       </div>
     </div>
   );

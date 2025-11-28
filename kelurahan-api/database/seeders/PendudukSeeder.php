@@ -15,24 +15,24 @@ class PendudukSeeder extends Seeder
     {
         $faker = Faker::create('id_ID');
 
-        // 1. Ambil KK Spesial (Punya Aditya)
+
         $kkAditya = Kk::where('nama_kepala_keluarga', 'Aditya Febriadi')->first();
 
-        // 2. Ambil KK Dummy (KK SELAIN Punya Aditya)
-        // Agar orang asing tidak masuk ke KK Aditya
+
+
         $kkDummyList = Kk::where('id_kk', '!=', $kkAditya->id_kk)->get();
 
-        // === 1. PENDUDUK SPESIAL 1: Aditya Febriadi ===
+
         $aditya = Penduduk::create([
             'id_kk'         => $kkAditya->id_kk,
             'nik'           => '3276009988776655',
             'nama'          => 'Aditya Febriadi',
-            'tanggal_lahir' => '2000-05-15',
+            'tanggal_lahir' => '2002-02-02',
             'jenis_kelamin' => 'L',
             'alamat'        => $kkAditya->alamat,
         ]);
 
-        // User Login Aditya
+
         User::create([
             'id_penduduk' => $aditya->id_penduduk,
             'name'        => $aditya->nama,
@@ -42,17 +42,17 @@ class PendudukSeeder extends Seeder
             'status'      => 'active',
         ]);
 
-        // === 2. PENDUDUK SPESIAL 2: Putri Nur Febrianti ===
+
         $putri = Penduduk::create([
-            'id_kk'         => $kkAditya->id_kk, // Satu KK dengan Aditya
+            'id_kk'         => $kkAditya->id_kk,
             'nik'           => '3276008877665544',
             'nama'          => 'Putri Nur Febrianti',
-            'tanggal_lahir' => '2002-08-20',
+            'tanggal_lahir' => '2005-02-27',
             'jenis_kelamin' => 'P',
             'alamat'        => $kkAditya->alamat,
         ]);
 
-        // User Login Putri
+
         User::create([
             'id_penduduk' => $putri->id_penduduk,
             'name'        => $putri->nama,
@@ -62,9 +62,9 @@ class PendudukSeeder extends Seeder
             'status'      => 'active',
         ]);
 
-        // === 3. BUAT 28 PENDUDUK DUMMY SISANYA ===
+
         for ($i = 0; $i < 28; $i++) {
-            // Pilih KK secara acak HANYA DARI KK DUMMY
+
             $randomKk = $kkDummyList->random();
 
             Penduduk::create([

@@ -1,6 +1,3 @@
-// Lokasi file: src/pages/admin/Laporan.jsx
-// (Laporan Dinamis - Frontend)
-
 import { useState, useEffect } from "react";
 import api from "../../services/api";
 import {
@@ -13,21 +10,6 @@ import {
   FaFemale,
   FaPrint
 } from "react-icons/fa";
-
-// Komponen Kartu Statistik
-const StatCard = ({ title, value, icon, colorClass }) => (
-  <div className={`bg-white p-6 shadow-md rounded-lg border-l-4 ${colorClass}`}>
-    <div className="flex justify-between items-center">
-      <div>
-        <p className="text-sm font-medium text-gray-500 uppercase">{title}</p>
-        <p className="text-3xl font-bold text-gray-800">{value}</p>
-      </div>
-      <div className="p-3 rounded-full bg-opacity-10">
-        {icon}
-      </div>
-    </div>
-  </div>
-);
 
 export default function Laporan() {
   const [submissionStats, setSubmissionStats] = useState(null);
@@ -109,7 +91,6 @@ export default function Laporan() {
         </div>
 
         <div className="space-y-8 printable-area">
-          {/* Laporan Pengajuan Surat */}
           <div className="bg-white p-6 shadow-md rounded-lg">
             <h2 className="text-2xl font-semibold mb-6 border-b pb-3">
               Laporan Pengajuan Surat
@@ -145,7 +126,6 @@ export default function Laporan() {
             )}
           </div>
 
-          {/* Laporan Penduduk */}
           <div className="bg-white p-6 shadow-md rounded-lg">
             <h2 className="text-2xl font-semibold mb-6 border-b pb-3">
               Laporan Kependudukan
@@ -179,3 +159,17 @@ export default function Laporan() {
     </>
   );
 }
+
+const StatCard = ({ title, value, icon, colorClass }) => (
+  <div className={`bg-white p-6 shadow-md rounded-lg border-l-4 ${colorClass}`}>
+    <div className="flex justify-between items-center">
+      <div>
+        <p className="text-sm font-medium text-gray-500 uppercase">{title}</p>
+        <p className="text-3xl font-bold text-gray-800">{value}</p>
+      </div>
+      <div className="p-3 rounded-full bg-opacity-10">
+        {icon}
+      </div>
+    </div>
+  </div>
+);

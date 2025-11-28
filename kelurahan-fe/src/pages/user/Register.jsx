@@ -1,5 +1,3 @@
-// Lokasi file: src/pages/user/Register.jsx
-
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -47,14 +45,11 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to- from-blue-100 to-blue-200 p-6">
-
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-100 to-blue-200 p-6">
       <div className="bg-white w-full max-w-lg shadow-2xl rounded-3xl p-10 mx-auto text-center">
-
         <h1 className="text-3xl font-bold text-blue-800 mb-1">
           Registrasi Warga
         </h1>
-
         <p className="text-gray-600 text-sm mb-6">
           Daftar akun untuk mengakses layanan kelurahan digital.
         </p>
@@ -71,91 +66,48 @@ const Register = () => {
           </div>
         )}
 
-        {/* FORM */}
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <RegisterInput
+            label="NIK (16 Digit)"
+            type="text"
+            name="nik"
+            value={formData.nik}
+            onChange={handleChange}
+            placeholder="Nomor Induk Kependudukan"
+          />
 
-          {/* NIK */}
-          <div className="space-y-2">
-            <label className="font-semibold text-gray-700 text-sm block text-center">
-              NIK (16 Digit)
-            </label>
+          <RegisterInput
+            label="Email"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="email@anda.com"
+          />
 
-            <div className="flex justify-center">
-              <input
-                type="text"
-                name="nik"
-                placeholder="Nomor Induk Kependudukan"
-                className="input input-bordered w-4/5 rounded-xl bg-gray-50 text-base py-3 text-center focus:ring-2 focus:ring-blue-400"
-                required
-                value={formData.nik}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
+          <RegisterInput
+            label="Password"
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="********"
+          />
 
-          {/* Email */}
-          <div className="space-y-2">
-            <label className="font-semibold text-gray-700 text-sm block text-center">
-              Email
-            </label>
+          <RegisterInput
+            label="Konfirmasi Password"
+            type="password"
+            name="password_confirmation"
+            value={formData.password_confirmation}
+            onChange={handleChange}
+            placeholder="********"
+          />
 
-            <div className="flex justify-center">
-              <input
-                type="email"
-                name="email"
-                placeholder="email@anda.com"
-                className="input input-bordered w-4/5 rounded-xl bg-gray-50 text-base py-3 text-center focus:ring-2 focus:ring-blue-400"
-                required
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="space-y-2">
-            <label className="font-semibold text-gray-700 text-sm block text-center">
-              Password
-            </label>
-
-            <div className="flex justify-center">
-              <input
-                type="password"
-                name="password"
-                placeholder="********"
-                className="input input-bordered w-4/5 rounded-xl bg-gray-50 text-base py-3 text-center focus:ring-2 focus:ring-blue-400"
-                required
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-2">
-            <label className="font-semibold text-gray-700 text-sm block text-center">
-              Konfirmasi Password
-            </label>
-
-            <div className="flex justify-center">
-              <input
-                type="password"
-                name="password_confirmation"
-                placeholder="********"
-                className="input input-bordered w-4/5 rounded-xl bg-gray-50 text-base py-3 text-center focus:ring-2 focus:ring-blue-400"
-                required
-                value={formData.password_confirmation}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* Tombol Submit */}
-          <div className="flex justify-center">
+          <div className="pt-2 flex justify-center">
             <button
               type="submit"
               disabled={loading || success}
-              className="btn bg-blue-600 hover:bg-blue-700 text-white w-4/5 rounded-xl shadow-md py-3 font-semibold hover:scale-[1.02] transition-all"
+              className="btn bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-4/5 rounded-xl shadow-md py-3 font-semibold hover:scale-[1.02] transition-all disabled:opacity-70 disabled:scale-100"
             >
               {loading ? (
                 <span className="loading loading-spinner"></span>
@@ -175,10 +127,28 @@ const Register = () => {
             Login di sini
           </Link>
         </p>
-
       </div>
     </div>
   );
 };
+
+const RegisterInput = ({ label, type, name, value, onChange, placeholder }) => (
+  <div className="space-y-2">
+    <label className="font-semibold text-gray-700 text-sm block text-center">
+      {label}
+    </label>
+    <div className="flex justify-center">
+      <input
+        type={type}
+        name={name}
+        placeholder={placeholder}
+        className="input input-bordered w-full sm:w-4/5 rounded-xl bg-gray-50 text-base py-3 text-center focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
+        required
+        value={value}
+        onChange={onChange}
+      />
+    </div>
+  </div>
+);
 
 export default Register;

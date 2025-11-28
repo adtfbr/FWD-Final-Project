@@ -1,4 +1,5 @@
-// src/context/AuthContext.jsx
+/* eslint-disable react-refresh/only-export-components */
+
 import { createContext, useState, useContext } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   
   const navigate = useNavigate(); 
 
-  // --- FUNGSI LOGIN GENERIK (UTAMA) ---
+  
   const handleLogin = async (email, password, expectedRole) => {
     try {
       const response = await api.post('/login', { email, password });
@@ -21,12 +22,12 @@ export const AuthProvider = ({ children }) => {
 
       if (!token) throw new Error("Token tidak diterima dari server");
 
-      // Validasi Role
+      
       if (userData.role !== expectedRole) {
         throw new Error(`Akun ini bukan akun ${expectedRole}.`);
       }
 
-      // Simpan Data
+      
       localStorage.setItem('authToken', token);
       localStorage.setItem('authUser', JSON.stringify(userData));
       setUser(userData);
@@ -35,9 +36,9 @@ export const AuthProvider = ({ children }) => {
 
     } catch (error) {
       console.error(`Login ${expectedRole} gagal:`, error);
-      localStorage.removeItem('authToken'); // Bersihkan jika gagal
+      localStorage.removeItem('authToken'); 
       
-      // Error Handling Spesifik
+      
       if (error.response) {
         if (error.response.status === 403) throw new Error("Akun Anda sedang menunggu verifikasi atau non-aktif.");
         if (error.response.status === 401) throw new Error("Email atau password salah.");
@@ -47,13 +48,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Wrapper untuk Petugas
+  
   const loginPetugas = (email, password) => handleLogin(email, password, 'petugas');
 
-  // Wrapper untuk Warga
+  
   const loginWarga = (email, password) => handleLogin(email, password, 'warga');
 
-  // --- FUNGSI REGISTER ---
+  
   const registerWarga = async (formData) => {
     try {
       await api.post('/register', formData);
@@ -68,7 +69,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // --- FUNGSI LOGOUT ---
+  
   const logout = async () => {
     const userRole = user?.role; 
     try {
@@ -92,5 +93,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
+
 export const useAuth = () => useContext(AuthContext);

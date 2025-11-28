@@ -71,6 +71,7 @@ class AuthController extends Controller
             'email'       => $request->email,
             'password'    => Hash::make($request->password),
             'role'        => 'warga',
+            'status'      => 'pending',
             'id_penduduk' => $penduduk->id_penduduk,
         ]);
 
@@ -82,13 +83,20 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user();
+
+        if ($user->role === 'warga') {
+            $user->load('penduduk');
+        } elseif ($user->role === 'petugas') {
+            $user->load('petugas');
+        }
+
+        return response()->json($user);
     }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
-
         return response()->json(['message' => 'Logout berhasil']);
     }
 }

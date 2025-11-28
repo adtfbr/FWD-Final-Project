@@ -10,14 +10,14 @@ class KkSeeder extends Seeder
 {
     public function run(): void
     {
-        $faker = Faker::create('id_ID'); // Pakai locale Indonesia
+        $faker = Faker::create('id_ID');
 
-        // 1. KK SPESIAL (Aditya & Putri)
+
         Kk::create([
-            'no_kk'                => '3276001122334455', // No KK Cantik
+            'no_kk'                => '3276001122334455',
             'nama_kepala_keluarga' => 'Aditya Febriadi',
             'nik_kepala_keluarga'  => '3276009988776655',
-            'alamat'               => 'Jl. Cinta Sejati No. 1',
+            'alamat'               => 'Depok',
             'rt'                   => '001',
             'rw'                   => '001',
             'kelurahan'            => 'Mekarjaya',
@@ -29,7 +29,7 @@ class KkSeeder extends Seeder
             'tanggal_terbit'       => '2024-01-01',
         ]);
 
-        // 2. BUAT 6 KK DUMMY LAINNYA
+
         for ($i = 1; $i <= 6; $i++) {
             Kk::create([
                 'no_kk'                => $faker->unique()->numerify('3276############'),

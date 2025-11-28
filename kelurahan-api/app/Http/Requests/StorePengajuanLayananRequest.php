@@ -8,7 +8,7 @@ class StorePengajuanLayananRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Izinkan hanya jika user login memiliki role warga
+
         return $this->user()->role === 'warga';
     }
 
@@ -20,7 +20,7 @@ class StorePengajuanLayananRequest extends FormRequest
         ];
     }
 
-    // Opsional: Custom pesan error
+
     public function messages(): array
     {
         return [

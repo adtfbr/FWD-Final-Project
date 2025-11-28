@@ -11,15 +11,18 @@ class Petugas extends Model
 
     protected $table = 'petugas';
     protected $primaryKey = 'id_petugas';
-    protected $fillable = ['nama_petugas', 'jabatan', 'no_hp'];
 
-    // Relasi: Satu Petugas bisa memiliki satu Akun User
+    protected $fillable = [
+        'nama_petugas',
+        'jabatan',
+        'no_hp'
+    ];
+
     public function user()
     {
         return $this->hasOne(User::class, 'id_petugas', 'id_petugas');
     }
 
-    // Relasi: Satu Petugas bisa memproses banyak Pengajuan Layanan
     public function pengajuanLayanans()
     {
         return $this->hasMany(PengajuanLayanan::class, 'id_petugas', 'id_petugas');

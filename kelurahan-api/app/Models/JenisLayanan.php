@@ -10,9 +10,12 @@ class JenisLayanan extends Model
     use HasFactory;
 
     protected $primaryKey = 'id_jenis_layanan';
-    protected $fillable = ['nama_layanan', 'deskripsi'];
 
-    // Relasi: Satu Jenis Layanan bisa memiliki banyak Pengajuan
+    protected $fillable = [
+        'nama_layanan',
+        'deskripsi'
+    ];
+
     public function pengajuanLayanans()
     {
         return $this->hasMany(PengajuanLayanan::class, 'id_jenis_layanan', 'id_jenis_layanan');

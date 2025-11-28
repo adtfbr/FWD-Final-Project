@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -36,19 +35,16 @@ class User extends Authenticatable
         ];
     }
 
-    // Relasi: Satu Akun User dimiliki oleh satu Penduduk
     public function penduduk()
     {
         return $this->belongsTo(Penduduk::class, 'id_penduduk', 'id_penduduk');
     }
 
-    // Relasi: Satu Akun User dimiliki oleh satu Petugas
     public function petugas()
     {
         return $this->belongsTo(Petugas::class, 'id_petugas', 'id_petugas');
     }
 
-    // Relasi: Satu User bisa membuat banyak Pengajuan Layanan
     public function pengajuanLayanans()
     {
         return $this->hasMany(PengajuanLayanan::class, 'id_user', 'id_user');
