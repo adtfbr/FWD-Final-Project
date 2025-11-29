@@ -183,7 +183,7 @@ export default function ManajemenBerita() {
 
 const BeritaCard = ({ berita, onEdit, onDelete }) => (
   <div className="card bg-white shadow-md border hover:shadow-xl transition-all flex flex-col h-full rounded-xl overflow-hidden group">
-    <figure className="h-48 w-full bg-gray-100 relative overflow-hidden">
+    <figure className="h-100 w-full bg-gray-100 relative overflow-hidden">
       {berita.gambar ? (
         <img 
           src={`${STORAGE_URL}${berita.gambar}`} 
